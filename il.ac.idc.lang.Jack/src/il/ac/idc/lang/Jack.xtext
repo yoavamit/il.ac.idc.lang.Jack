@@ -1,0 +1,70 @@
+grammar il.ac.idc.lang.Jack with org.eclipse.xtext.common.Terminals
+
+generate jack "http://www.ac.il/idc/lang/Jack"
+
+// Program Structure
+Class:
+	'class' className=ID '{' vars+=ClassVarDecl* routines+=SubroutineDecl* '}';
+
+ClassVarDecl:
+	access=('static' | 'field') type=Type varName=ID;
+
+Type:
+	'int' | 'boolean' | 'char' | ID;
+
+SubroutineDecl:
+	type=('constructor' | 'function' | 'method') returnType=('void' | Type) subroutineName=ID '(' params=ParameterList
+	')' body=SubroutineBody;
+
+ParamDecl:
+	type=Type varName=ID;
+
+ParameterList:
+	{ParameterList} (decl=ParamDecl (',' AdditionalDecls+=ParamDecl)*)?;
+
+SubroutineBody:
+	'{' variables+=VarDecl* statements+=Statement+ '}';
+
+VarDecl:
+	'var' type=Type varName=ID (',' AdditionalVarNames+=ID)* ';';
+
+	// Statements
+Statement:
+	LetStatement | IfStatement | WhileStatement | DoStatement | ReturnStatement;
+
+LetStatement:
+	'let' varName=ID ('[' varAccessExpr=Expression ']')? '=' eval=Expression ';';
+
+IfStatement:
+	'if' '(' condition=Expression ')' '{' trueBody+=Statement* '}' ('else' '{' falseBody+=Statement* '}')?;
+
+WhileStatement:
+	'while' '(' condition=Expression ')' '{' whileBody+=Statement* '}';
+
+DoStatement:
+	'do' call=SubroutineCall ';';
+
+ReturnStatement:
+	'return' eval=Expression? ';';
+
+	// Expressions
+Expression:
+	leftOperand=Term (operator+=Operator rightOperand+=Term)*;
+
+Term:
+	INT | STRING | Keyword | ID ('[' varAccessExpr=Expression ']')? | SubroutineCall | '(' Expression ')' | UnaryOp Term;
+
+SubroutineCall:
+	(varOrClass=ID '.')? name=ID '(' params=ExpressionList ')';
+
+ExpressionList:
+	{ExpressionList} (firstExpr=Expression (',' additionalExprs+=Expression)*)?;
+
+Operator:
+	'+' | '-' | '*' | '/' | '&' | '|' | '<' | '>' | '=';
+
+UnaryOp:
+	'-' | '~';
+
+Keyword:
+	'true' | 'false' | 'null' | 'this';

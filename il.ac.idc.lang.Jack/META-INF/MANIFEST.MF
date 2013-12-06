@@ -1,0 +1,34 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: il.ac.idc.lang.Jack
+Bundle-Vendor: My Company
+Bundle-Version: 1.0.0.qualifier
+Bundle-SymbolicName: il.ac.idc.lang.Jack; singleton:=true
+Bundle-ActivationPolicy: lazy
+Require-Bundle: org.eclipse.xtext;visibility:=reexport,
+ org.eclipse.xtext.xbase;resolution:=optional;visibility:=reexport,
+ org.eclipse.xtext.generator;resolution:=optional,
+ org.apache.commons.logging;bundle-version="1.0.4";resolution:=optional,
+ org.eclipse.emf.codegen.ecore;resolution:=optional,
+ org.eclipse.emf.mwe.utils;resolution:=optional,
+ org.eclipse.emf.mwe2.launch;resolution:=optional,
+ org.eclipse.xtext.util,
+ org.eclipse.emf.ecore,
+ org.eclipse.emf.common,
+ org.antlr.runtime,
+ org.eclipse.xtext.common.types
+Import-Package: org.apache.log4j,
+ org.eclipse.xtext.xbase.lib
+Bundle-RequiredExecutionEnvironment: J2SE-1.5
+Export-Package: il.ac.idc.lang,
+ il.ac.idc.lang.services,
+ il.ac.idc.lang.jack,
+ il.ac.idc.lang.jack.impl,
+ il.ac.idc.lang.jack.util,
+ il.ac.idc.lang.serializer,
+ il.ac.idc.lang.parser.antlr,
+ il.ac.idc.lang.parser.antlr.internal,
+ il.ac.idc.lang.validation,
+ il.ac.idc.lang.scoping,
+ il.ac.idc.lang.generator,
+ il.ac.idc.lang.formatting
