@@ -21,14 +21,15 @@ Import-Package: org.apache.log4j,
  org.eclipse.xtext.xbase.lib
 Bundle-RequiredExecutionEnvironment: J2SE-1.5
 Export-Package: il.ac.idc.lang,
- il.ac.idc.lang.services,
+ il.ac.idc.lang.formatting,
+ il.ac.idc.lang.generator,
  il.ac.idc.lang.jack,
  il.ac.idc.lang.jack.impl,
  il.ac.idc.lang.jack.util,
- il.ac.idc.lang.serializer,
  il.ac.idc.lang.parser.antlr,
  il.ac.idc.lang.parser.antlr.internal,
- il.ac.idc.lang.validation,
  il.ac.idc.lang.scoping,
- il.ac.idc.lang.generator,
- il.ac.idc.lang.formatting
+ il.ac.idc.lang.serializer,
+ il.ac.idc.lang.services,
+ il.ac.idc.lang.util,
+ il.ac.idc.lang.validation

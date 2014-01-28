@@ -3,7 +3,10 @@ grammar il.ac.idc.lang.Jack with org.eclipse.xtext.common.Terminals
 generate jack "http://www.ac.il/idc/lang/Jack"
 
 // Program Structure
-Class:
+Jack:
+	root=ClassDef;
+
+ClassDef:
 	'class' className=ID '{' vars+=ClassVarDecl* routines+=SubroutineDecl* '}';
 
 ClassVarDecl:
@@ -45,14 +48,15 @@ DoStatement:
 	'do' call=SubroutineCall ';';
 
 ReturnStatement:
+	{ReturnStatement}
 	'return' eval=Expression? ';';
 
-	// Expressions
 Expression:
 	leftOperand=Term (operator+=Operator rightOperand+=Term)*;
 
 Term:
-	INT | STRING | Keyword | ID ('[' varAccessExpr=Expression ']')? | SubroutineCall | '(' Expression ')' | UnaryOp Term;
+	INT | STRING | Keyword | ID ('[' varAccessExpr=Expression ']')? | SubroutineCall | '('
+	Expression ')' | UnaryOp Term;
 
 SubroutineCall:
 	(varOrClass=ID '.')? name=ID '(' params=ExpressionList ')';
@@ -61,7 +65,7 @@ ExpressionList:
 	{ExpressionList} (firstExpr=Expression (',' additionalExprs+=Expression)*)?;
 
 Operator:
-	'+' | '-' | '*' | '/' | '&' | '|' | '<' | '>' | '=';
+	'+' | '-' | '*' | '/' | '&' | '|' | '<' | '>' | '==';
 
 UnaryOp:
 	'-' | '~';
