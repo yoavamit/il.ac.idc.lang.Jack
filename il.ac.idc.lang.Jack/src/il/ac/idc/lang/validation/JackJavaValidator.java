@@ -10,9 +10,6 @@ import il.ac.idc.lang.util.JackBuiltinLibraries;
 import il.ac.idc.lang.util.JackObjectUtil;
 
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.TerminalRule;
-import org.eclipse.xtext.nodemodel.ICompositeNode;
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.validation.Check;
 
 /**
