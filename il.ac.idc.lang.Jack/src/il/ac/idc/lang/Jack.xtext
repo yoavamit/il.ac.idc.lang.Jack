@@ -55,7 +55,7 @@ Expression:
 	leftOperand=Term (operator+=Operator rightOperand+=Term)*;
 
 Term:
-	INT | STRING | Keyword | ID ('[' varAccessExpr=Expression ']')? | SubroutineCall | '('
+	{Term} INT | {Term} STRING | {Term} Keyword | {Term} ID ('[' varAccessExpr=Expression ']')? | SubroutineCall | '('
 	Expression ')' | UnaryOp Term;
 
 SubroutineCall:

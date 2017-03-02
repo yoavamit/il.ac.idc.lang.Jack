@@ -392,5 +392,13 @@
             extensions="jack">
     </provider>
   </extension>
+  <extension
+        point="org.eclipse.ui.perspectives">
+     <perspective 
+           id="il.ac.idc.jack.ui.perspective"
+           name="Jack"
+           class="il.ac.idc.lang.ui.JackPerspectiveFactory">
+     </perspective>
+  </extension>
 
 </plugin>
