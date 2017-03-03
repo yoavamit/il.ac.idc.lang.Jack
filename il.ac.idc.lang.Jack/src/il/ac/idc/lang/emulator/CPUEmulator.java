@@ -15,7 +15,7 @@ public class CPUEmulator {
 
 	private int[] memory = new int[1 << 16];
 	private List<Integer> breakpoints = new ArrayList<Integer>();
-	private static final int instructionsOffset = 1 << 15;
+	private static final int instructionsOffset = 128;
 	private final int A_INSTR_VALUE_MASK = -1 >> 17;
 	private final int C_INSTR_DEST_MASK = 56;
 	private final int C_INST_JUMP_MASK = 7;
