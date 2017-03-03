@@ -10,6 +10,15 @@
        genModel = "model/generated/Jack.genmodel" /> 
 	
   </extension>
+  <extension
+        point="org.eclipse.debug.core.launchConfigurationTypes">
+     <launchConfigurationType
+           name="Hack"
+           delegate="il.ac.idc.lang.launching.HackLaunchConfigurationDelegate"
+           modes="run, debug"
+           id="il.ac.idc.lang.launching.Hack">
+     </launchConfigurationType>
+  </extension>
 
 
 
