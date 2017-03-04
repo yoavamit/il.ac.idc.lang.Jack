@@ -400,5 +400,20 @@
            class="il.ac.idc.lang.ui.JackPerspectiveFactory">
      </perspective>
   </extension>
+  <extension
+        point="org.eclipse.debug.ui.launchConfigurationTypeImages">
+     <launchConfigurationTypeImage
+           icon="icons/hack.gif"
+           configTypeId="il.ac.idc.lang.launching.Hack">
+     </launchConfigurationTypeImage>
+  </extension>
+  <extension
+        point="org.eclipse.debug.ui.launchConfigurationTabGroups">
+     <launchConfigurationTabGroup
+           type="il.ac.idc.lang.launching.Hack"
+           class="il.ac.idc.lang.ui.launch.HackLaunchConfigurationTabGroup"
+           id="il.ac.idc.lang.ui.launch.tabGroup.Hack">
+     </launchConfigurationTabGroup>
+  </extension>
 
 </plugin>

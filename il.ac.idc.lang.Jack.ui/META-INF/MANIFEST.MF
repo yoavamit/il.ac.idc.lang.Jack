@@ -15,10 +15,12 @@ Require-Bundle: il.ac.idc.lang.Jack;visibility:=reexport,
  org.antlr.runtime,
  org.eclipse.xtext.common.types.ui,
  org.eclipse.xtext.ui.codetemplates.ui,
- org.eclipse.compare
-Import-Package: org.apache.log4j,
+ org.eclipse.compare,
+ org.eclipse.jdt.debug.ui;bundle-version="3.7.201"
+Import-Package: javax.xml.bind;version="0.0.0",
+ org.apache.log4j,
  org.eclipse.xtext.xbase.lib
-Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Export-Package: il.ac.idc.lang.ui.quickfix,
  il.ac.idc.lang.ui.contentassist,
  il.ac.idc.lang.ui.contentassist.antlr,
