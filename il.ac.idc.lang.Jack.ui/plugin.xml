@@ -404,7 +404,8 @@
         point="org.eclipse.debug.ui.launchConfigurationTypeImages">
      <launchConfigurationTypeImage
            icon="icons/hack.gif"
-           configTypeId="il.ac.idc.lang.launching.Hack">
+           configTypeID="il.ac.idc.lang.launching.Hack"
+           id="il.ac.idc.lang.launching.Hack.icon">
      </launchConfigurationTypeImage>
   </extension>
   <extension
