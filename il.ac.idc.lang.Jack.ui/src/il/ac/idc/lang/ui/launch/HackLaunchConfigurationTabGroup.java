@@ -10,6 +10,7 @@ public class HackLaunchConfigurationTabGroup extends AbstractLaunchConfiguration
 	@Override
 	public void createTabs(ILaunchConfigurationDialog dialog, String mode) {
 		ILaunchConfigurationTab[] tabs = new ILaunchConfigurationTab[] {
+				new HackParametersTab(),
 				new CommonTab()
 		};
 		setTabs(tabs);
