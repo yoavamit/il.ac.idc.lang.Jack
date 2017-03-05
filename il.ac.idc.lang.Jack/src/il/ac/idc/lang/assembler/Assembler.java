@@ -21,7 +21,7 @@ public class Assembler {
 		symbols = new SymbolTable();
 	}
 	
-	public List<Integer> assemble() {
+	public Integer[] assemble() {
 		List<Integer> instructions = new ArrayList<>();
 		int currentInstructionAddress = 0;
 		while(parser.hasMoreCommands()) {
@@ -68,7 +68,9 @@ public class Assembler {
 				break;
 			}
 		}
-		return instructions;
+		Integer[] output = new Integer[instructions.size()];
+		instructions.toArray(output);
+		return output;
 	}
 	
 	public static void main(String[] args) {
@@ -98,12 +100,10 @@ public class Assembler {
 				+ "D=M\n"
 				+ "@R1\n"
 				+ "M=D // RAM[1] = the sum\n"
-				+ "(END)\n"
-				+ "@END\n"
-				+ "0;JMP";
+				+ "EOP";
 		try {
 			Assembler asm = new Assembler(new StringInputStream(program));
-			List<Integer> instructions = asm.assemble();
+			Integer[] instructions = asm.assemble();
 			for (Integer instruction : instructions) {
 				String inst = Integer.toBinaryString(instruction);
 				if (inst.length() < 16) {

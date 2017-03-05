@@ -49,6 +49,9 @@ public class Code {
 	public static int comp(String comp) {
 		int compBits = 0;
 		switch(comp) {
+		case "EOP":
+			compBits = 56;
+			break;
 		case "0":
 			compBits = 42;
 			break;

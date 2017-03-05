@@ -13,14 +13,13 @@ import org.eclipse.xtext.util.StringInputStream;
 
 public class CPUEmulator {
 
-	private int[] memory = new int[1 << 16];
+	private int[] ram = new int[1 << 16];
+	private Integer[] rom = new Integer[1 << 16];
 	private List<Integer> breakpoints = new ArrayList<Integer>();
-	private static final int instructionsOffset = 128;
 	private final int A_INSTR_VALUE_MASK = -1 >> 17;
 	private final int C_INSTR_DEST_MASK = 56;
 	private final int C_INST_JUMP_MASK = 7;
 	private final int C_INST_OP_MASK = 8128;
-	private final int EOP = 60039;
 	private int regA;
 	private int regD;
 	private int currentInstructionAddress;
@@ -31,18 +30,18 @@ public class CPUEmulator {
 		regD = 0;
 		isTerminated = false;
 		isPaused = true;
-		currentInstructionAddress = instructionsOffset;
-		for (int i = 0; i < memory.length; i++) {
-			memory[i] = 0;
+		currentInstructionAddress = 0;
+		for (int i = 0; i < ram.length; i++) {
+			ram[i] = 0;
 		}
 	}
 
-	public void loadProgram(String program) throws IOException {
-		loadProgram(new StringInputStream(program));
+	public void loadProgram(String program, String format) throws IOException {
+		loadProgram(new StringInputStream(program), format);
 	}
 	
-	public void loadProgram(File input) throws IOException {
-		loadProgram(new FileInputStream(input));
+	public void loadProgram(File input, String format) throws IOException {
+		loadProgram(new FileInputStream(input), format);
 	}
 
 	/**
@@ -50,7 +49,15 @@ public class CPUEmulator {
 	 * @return
 	 */
 	public int getCurrentInstruction() {
-		return memory[currentInstructionAddress];
+		return ram[currentInstructionAddress];
+	}
+	
+	/**
+	 * Returns the current instruction address
+	 * @return
+	 */
+	public int getCurrentInstructionPointer() {
+		return currentInstructionAddress;
 	}
 	
 	/**
@@ -75,7 +82,7 @@ public class CPUEmulator {
 	 * @return
 	 */
 	public int getRegM() {
-		return memory[regA];
+		return ram[regA];
 	}
 	
 	/**
@@ -87,7 +94,7 @@ public class CPUEmulator {
 	public int[] getMemoryRange(int offset, int size) {
 		int[] block = new int[size];
 		for (int i = 0; i < size; i++) {
-			block[i] = memory[offset + i];
+			block[i] = ram[offset + i];
 		}
 		return block;
 	}
@@ -129,15 +136,15 @@ public class CPUEmulator {
 		return breakpoints;
 	}
 	
-	public void loadProgram(InputStream input) throws IOException {
-		resetCPU();
+	public void loadProgram(InputStream input, String format) throws IOException {
 		BufferedReader stream = new BufferedReader(new InputStreamReader(input));
 		String line = stream.readLine();
-		int currentInstructionAddress = instructionsOffset;
+		List<Integer> program = new ArrayList<>();
+		int radix = format.equals("s") ? 2 : 10;
 		while (line != null) {
 			try {
-				int instruction = Integer.parseInt(line, 2);
-				memory[currentInstructionAddress++] = instruction;
+				int instruction = Integer.parseInt(line, radix);
+				program.add(instruction);
 			} catch (NumberFormatException e) {
 				stream.close();
 				throw new IOException("Invalid program instruction encountered: " + line);
@@ -145,6 +152,17 @@ public class CPUEmulator {
 			line = stream.readLine();
 		}
 		stream.close();
+		Integer[] binaryProgram = new Integer[program.size()];
+		program.toArray(binaryProgram);
+		loadProgram(binaryProgram);
+	}
+	
+	public void loadProgram(Integer[] program) throws IOException {
+		resetCPU();
+		if (program.length > rom.length) {
+			throw new IOException("Cannot load program into ROM, program exceeds the 16K size limit");
+		}
+		System.arraycopy(program, 0, rom, 0, program.length);
 	}
 
 	public void run() {
@@ -172,22 +190,24 @@ public class CPUEmulator {
 	 * Emulate the execution of the current instruction specified by the current instruction memory address
 	 */
 	public void executeCurrentInstruction() {
-		int currentInstruction = memory[currentInstructionAddress];
-		if (currentInstruction == EOP) {
-			isTerminated = true;
-			return;
+		// simulate the NOP instruction
+		// NOTE: this may throw an IndexOutOfBoundsException
+		while(rom[currentInstructionAddress] == null) {
+			currentInstructionAddress++;
 		}
+		int currentInstruction = rom[currentInstructionAddress];
 		int instructionType = (currentInstruction >> 15) & 1;
 		if (instructionType == 0) {
 			// A-instruction
 			int value = currentInstruction & A_INSTR_VALUE_MASK;
 			regA = value;
+			System.out.println("a-inst: " + value);
 			currentInstructionAddress++;
 		} else if (instructionType == 1) {
 			// C-instruction
 			int comp = currentInstruction & C_INST_OP_MASK;
 			int op = (comp & (C_INST_OP_MASK >> 1)) >> 6;
-			int aValue = (comp >> 12) == 0 ? regA : memory[regA];
+			int aValue = (comp >> 12) == 0 ? regA : ram[regA];
 			int result = 0;
 			switch (op) {
 			case 42:
@@ -244,11 +264,13 @@ public class CPUEmulator {
 			case 21:
 				result = aValue | regD; // A|D
 				break;
+			case 56:
+				isTerminated = true; // EOP special instruction to identify halt signal
+				return;
 			}
-			
 			int dest = (currentInstruction & C_INSTR_DEST_MASK) >> 3;
 			if ((dest & 1) > 0) {
-				memory[regA] = result;
+				ram[regA] = result;
 			}
 			if ((dest & 2) > 0) {
 				regD = result;
@@ -256,7 +278,6 @@ public class CPUEmulator {
 			if ((dest & 4) > 0) {
 				regA = result;
 			}
-			
 			int jump = currentInstruction & C_INST_JUMP_MASK;
 			boolean shouldJump = false;
 			switch(jump) {
@@ -294,21 +315,25 @@ public class CPUEmulator {
 	}
 	
 	public static void main(String[] args) {
-		String program = "0100000000000000\n"  // @a
-				       + "1110111111001000\n"  // M=1 (a=1)
-				       + "0100000000000001\n"  // @b
-				       + "1110111111001000\n"  // M=A (b=1)
-				       + "1111110000010000\n"  // D=M (D=b)
+		String program = "0000000000000100\n"  // 4
+				       + "1110110000010000\n"  // D=A
 				       + "0100000000000000\n"  // @a
-				       + "1111110000100000\n"  // A=M (A=a)
-				       + "1111000010010000\n"  // D=A+D
-				       + "0100000000000010\n"  // @res
-				       + "1110001100001000\n"  // M=D (@res=2)
-				       + "1110101010000111\n"; // 0;JMP
+				       + "1110001100001000\n"  // M=D (a=2)
+				       + "0000000000000010\n"  // 2
+				       + "1110110000010000\n"  // D=A (D=b)
+				       + "0100000000000000\n"  // @a
+				       + "1111000010010000\n"  // D=M+D
+				       + "0100000000000001\n"  // @res
+				       + "1110001100001000\n"  // M=D (@res=6)
+				       + "1110111000000000\n"; // EOP
 		CPUEmulator emulator = new CPUEmulator();
 		try {
-			emulator.loadProgram(program);
+			emulator.loadProgram(program, "s");
 			emulator.run();
+			System.out.println("Current instruction pointer: " + emulator.getCurrentInstructionPointer());
+			System.out.println("Current \"D\" register: " + emulator.getRegD());
+			System.out.println("Current \"A\" register: " + emulator.getRegA());
+			System.out.println("Current \"M\" register: " + emulator.getRegM());
 		} catch (IOException e) {
 			System.out.println("Couldn't load program...");
 		}
