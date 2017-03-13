@@ -110,7 +110,7 @@ public class Code {
 			compBits = 2;
 			break;
 		case "D+M":
-			compBits = 34;
+			compBits = 66;
 			break;
 		case "D-A":
 			compBits = 19;

@@ -65,7 +65,7 @@ ExpressionList:
 	{ExpressionList} (firstExpr=Expression (',' additionalExprs+=Expression)*)?;
 
 Operator:
-	'+' | '-' | '*' | '/' | '&' | '|' | '<' | '>' | '==';
+	'+' | '-' | '*' | '/' | '&' | '|' | '<' | '>' | '=';
 
 UnaryOp:
 	'-' | '~';

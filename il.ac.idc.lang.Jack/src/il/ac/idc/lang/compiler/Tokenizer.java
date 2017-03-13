@@ -96,7 +96,7 @@ public class Tokenizer {
 	 * @return
 	 */
 	public boolean hasMoreTokens() {
-		return scanner.hasNext() && !currentLine.isEmpty();
+		return scanner.hasNext() || !currentLine.isEmpty();
 	}
 	
 	/**
@@ -120,8 +120,8 @@ public class Tokenizer {
 		}
 		// check for string constant
 		if (currentLine.startsWith("\"")) {
-			currentToken = currentLine.substring(1, currentLine.indexOf("\"", 1));
-			currentLine = currentLine.substring(currentToken.length() + 2).trim();
+			currentToken = currentLine.substring(0, currentLine.indexOf("\"", 1) + 1);
+			currentLine = currentLine.substring(currentToken.length()).trim();
 			return;
 		}
 		// check for integer constant
@@ -189,7 +189,7 @@ public class Tokenizer {
 		} else {
 			// check for symbol
 			for (int i = 0; i < symbols.length; i++) {
-				if (currentToken.equals(symbols[i])) {
+				if (currentToken.charAt(0) == symbols[i]) {
 					return TokenType.SYMBOL;
 				}
 			}
@@ -223,12 +223,7 @@ public class Tokenizer {
 	 * @return
 	 */
 	public char symbol() {
-		for (int i = 0; i < symbols.length; i++) {
-			if (currentToken.equals(symbols[i])) {
-				return symbols[i];
-			}
-		}
-		return '\0';
+		return currentToken.charAt(0);
 	}
 	
 	/**

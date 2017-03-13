@@ -1,12 +1,10 @@
 package il.ac.idc.lang.hvm;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 
 public class Parser {
 	
@@ -44,27 +42,16 @@ public class Parser {
 		commandsMap.put("call", CommandType.C_CALL);
 	}
 	
-	private List<String> commands;
 	private String currentCommand;
-	private int commandIndex;
+	private Scanner scanner;
 	
 	public Parser(InputStream stream) throws IOException {
-		BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
-		String currentCommand = reader.readLine();
-		while(currentCommand != null) {
-			if (!currentCommand.isEmpty() && !currentCommand.startsWith("//")) {
-				if (currentCommand.indexOf("//") >= 0) {
-					currentCommand = currentCommand.substring(0, currentCommand.indexOf("//"));
-				}
-				commands.add(currentCommand.trim());
-			}
-		}
-		commandIndex = 0;
-		this.currentCommand = null;
+		scanner = new Scanner(stream);
+		currentCommand = null;
 	}
 	
 	public boolean hasMoreCommands() {
-		return commandIndex != commands.size();
+		return scanner.hasNextLine();
 	}
 	
 	/**
@@ -73,7 +60,9 @@ public class Parser {
 	 * Initially there is no current command
 	 */
 	public void advance() {
-		currentCommand = commands.get(commandIndex++);
+		currentCommand = scanner.nextLine().trim();
+		while(currentCommand.startsWith("//") || currentCommand.isEmpty())
+			advance();
 	}
 	
 	/**

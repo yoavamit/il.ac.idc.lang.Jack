@@ -1,11 +1,10 @@
 package il.ac.idc.lang.assembler;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Scanner;
+
+import org.eclipse.xtext.util.StringInputStream;
 
 public class Parser {
 
@@ -15,39 +14,35 @@ public class Parser {
 		L_COMMAND
 	}
 	
-	private int currentCommandIndex;
+	private StringBuilder readLines = new StringBuilder();
 	private String currentCommand;
-	private List<String> commands;
+	private Scanner scanner;
 	
 	public Parser(InputStream stream) throws IOException {
-		BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
-		commands = new ArrayList<String>();
-		String currentLine = reader.readLine();
-		while(currentLine != null) {
-			currentLine = currentLine.trim();
-			if (!currentLine.isEmpty() && !currentLine.startsWith("//")) {
-				if (currentLine.indexOf("//") > 0) {
-					currentLine = currentLine.substring(0, currentLine.indexOf("//")).trim();
-				}
-				commands.add(currentLine);	
-			}
-			currentLine = reader.readLine();
-		}
+		scanner = new Scanner(stream);
 		currentCommand = null;
-		currentCommandIndex = 0;
 	}
 	
 	public void reset() {
-		currentCommandIndex = 0;
+		scanner.close();
+		scanner = new Scanner(new StringInputStream(readLines.toString()));
+		readLines = new StringBuilder();
 		currentCommand = null;
 	}
 	
 	public boolean hasMoreCommands() {
-		return currentCommandIndex != commands.size();
+		return scanner.hasNextLine();
 	}
 	
 	public void advance() {
-		currentCommand = commands.get(currentCommandIndex++);
+		String line = scanner.nextLine();
+		currentCommand = line.trim();
+		readLines.append(line);
+		readLines.append("\n");
+		while(currentCommand.startsWith("//") || currentCommand.isEmpty())
+			advance();
+		if (currentCommand.indexOf("//") > 0)
+			currentCommand = currentCommand.substring(0, currentCommand.indexOf("//"));
 	}
 	
 	public CommandType commandType() {

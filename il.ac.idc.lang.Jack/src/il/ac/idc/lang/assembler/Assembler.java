@@ -8,6 +8,7 @@ import java.util.List;
 import org.eclipse.xtext.util.StringInputStream;
 
 import il.ac.idc.lang.assembler.Parser.CommandType;
+import il.ac.idc.lang.emulator.CPUEmulator;
 
 public class Assembler {
 
@@ -15,16 +16,16 @@ public class Assembler {
 	private Parser parser;
 	private int userVariablesAddress = 16;
 	private static final int programStartAddress = 128;
-	
+
 	public Assembler(InputStream stream) throws IOException {
 		parser = new Parser(stream);
 		symbols = new SymbolTable();
 	}
-	
+
 	public Integer[] assemble() {
 		List<Integer> instructions = new ArrayList<>();
 		int currentInstructionAddress = 0;
-		while(parser.hasMoreCommands()) {
+		while (parser.hasMoreCommands()) {
 			parser.advance();
 			if (parser.commandType() == CommandType.L_COMMAND) {
 				symbols.addEntry(parser.symbol(), currentInstructionAddress + programStartAddress);
@@ -32,12 +33,12 @@ public class Assembler {
 				currentInstructionAddress++;
 			}
 		}
-		
+
 		parser.reset();
-		
-		while(parser.hasMoreCommands()) {
+
+		while (parser.hasMoreCommands()) {
 			parser.advance();
-			switch(parser.commandType()) {
+			switch (parser.commandType()) {
 			case A_COMMAND:
 				String value = parser.symbol();
 				boolean isNumeric = false;
@@ -45,7 +46,7 @@ public class Assembler {
 					Integer.parseInt(value);
 					isNumeric = true;
 				} catch (NumberFormatException e) {
-					
+
 				}
 				if (isNumeric) {
 					instructions.add(Integer.parseInt(value));
@@ -58,10 +59,8 @@ public class Assembler {
 				instructions.add(address);
 				break;
 			case C_COMMAND:
-				int instruction = 57344 + 
-				Code.comp(parser.comp()) + 
-				Code.dest(parser.dest()) + 
-				Code.jump(parser.jump());
+				int instruction = 57344 + Code.comp(parser.comp()) + Code.dest(parser.dest())
+						+ Code.jump(parser.jump());
 				instructions.add(instruction);
 				break;
 			case L_COMMAND:
@@ -72,34 +71,45 @@ public class Assembler {
 		instructions.toArray(output);
 		return output;
 	}
-	
+
 	public static void main(String[] args) {
-		String program = "// Computes 1+...+RAM[0]\n"
-				+ "// And store the sum in RAM[1]\n"
-				+ "@i\n"
-				+ "M=1 // i = 1\n"
-				+ "@sum\n"
-				+ "M=0 // sum = 0\n"
-				+ "(LOOP)\n"
-				+ "@i // if i>RAM[0] goto WRITE\n"
-				+ "D=M\n"
-				+ "@R0\n"
-				+ "D=D-M\n"
-				+ "@WRITE\n"
-				+ "D;JGT\n"
-				+ "@i // sum += i\n"
-				+ "D=M\n"
-				+ "@sumv"
-				+ "M=D+M\n"
-				+ "@i // i++\n"
+		String program = "@256\n"
+				+ "D=A\n"
+				+ "@SP\n"
+				+ "M=D\n"
+				+ "// push constant 7\n" 
+				+ "@7\n" 
+				+ "D=A\n" 
+				+ "@SP\n" 
+				+ "A=M\n" 
+				+ "M=D\n" 
+				+ "@SP\n" 
 				+ "M=M+1\n"
-				+ "@LOOP // goto LOOP\n"
-				+ "0;JMP\n"
-				+ "(WRITE)\n"
-				+ "@sum\n"
-				+ "D=M\n"
-				+ "@R1\n"
-				+ "M=D // RAM[1] = the sum\n"
+				+ "// push constant 8\n" 
+				+ "@8\n" 
+				+ "D=A\n" 
+				+ "@SP\n" 
+				+ "A=M\n" 
+				+ "M=D\n" 
+				+ "@SP\n" 
+				+ "M=M+1\n" 
+				+ "// add\n" 
+				+ "@SP\n"
+				+ "M=M-1\n" 
+				+ "A=M\n" 
+				+ "D=M\n" 
+				+ "M=0\n" 
+				+ "@R13\n" 
+				+ "M=D\n" 
+				+ "@SP\n" 
+				+ "M=M-1\n" 
+				+ "A=M\n" 
+				+ "D=M\n" 
+				+ "@R13\n" 
+				+ "D=D+M\n"
+				+ "@SP\n" 
+				+ "A=M\n" 
+				+ "M=D\n"
 				+ "EOP";
 		try {
 			Assembler asm = new Assembler(new StringInputStream(program));
@@ -113,6 +123,10 @@ public class Assembler {
 				}
 				System.out.println(inst);
 			}
+			CPUEmulator emulator = new CPUEmulator();
+			emulator.loadProgram(instructions);
+			emulator.run();
+			System.out.println(emulator.getRegM());
 		} catch (IOException e) {
 			System.out.println("Coudln't read program...");
 		}

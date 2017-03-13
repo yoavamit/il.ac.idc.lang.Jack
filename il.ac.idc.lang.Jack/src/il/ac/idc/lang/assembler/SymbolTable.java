@@ -31,7 +31,7 @@ public class SymbolTable {
 		table.put("THIS", 3);
 		table.put("THAT", 4);
 		table.put("SCREEN", 16384);
-		table.put("BKD", 24576);
+		table.put("KBD", 24576);
 	}
 
 	public void addEntry(String symbol, int address) {

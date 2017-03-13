@@ -201,7 +201,6 @@ public class CPUEmulator {
 			// A-instruction
 			int value = currentInstruction & A_INSTR_VALUE_MASK;
 			regA = value;
-			System.out.println("a-inst: " + value);
 			currentInstructionAddress++;
 		} else if (instructionType == 1) {
 			// C-instruction
