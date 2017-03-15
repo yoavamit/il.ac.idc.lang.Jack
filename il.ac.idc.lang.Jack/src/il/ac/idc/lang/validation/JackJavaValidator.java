@@ -38,8 +38,16 @@ public class JackJavaValidator extends il.ac.idc.lang.validation.AbstractJackJav
     @Check
     public void checkVariableAssignment(LetStatement let) {
         String varName = let.getVarName();
-        SubroutineBody function = getContainingSubroutine(let);
-        for (VarDecl var : function.getVariables()) {
+        SubroutineDecl function = getContainingSubroutine(let);
+        ParameterList params = function.getParams();
+        if (params.getDecl().getVarName().equals(varName))
+        	return;
+        for (ParamDecl decl : params.getAdditionalDecls()) {
+        	if (decl.getVarName().equals(varName))
+        		return;
+        }
+        
+        for (VarDecl var : function.getBody().getVariables()) {
             if (var.getVarName().equals(varName)) {
                 return;
             }
@@ -96,11 +104,11 @@ public class JackJavaValidator extends il.ac.idc.lang.validation.AbstractJackJav
         return subroutines;
     }
     
-    private SubroutineBody getContainingSubroutine(EObject obj) {
+    private SubroutineDecl getContainingSubroutine(EObject obj) {
         EObject parent = obj.eContainer();
         while (parent != null) {
-            if (parent instanceof SubroutineBody) {
-                return (SubroutineBody) parent;
+            if (parent instanceof SubroutineDecl) {
+                return (SubroutineDecl) parent;
             }
             parent = parent.eContainer();
         }
