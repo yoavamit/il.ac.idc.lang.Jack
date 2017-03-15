@@ -21,7 +21,6 @@ public class JackCompilerLaunchConfigurationDelegate implements ILaunchConfigura
 			throws CoreException {
 		String filename = configuration.getAttribute(IHackLaunchConfigurationConstants.ATTR_PROGRAM_FILENAME, "");
 		String classPath = getPluginPath(); 
-		System.out.println(filename);
 		String[] cmd = new String[] {"java", 
 				"-cp", classPath, 
 				"il.ac.idc.lang.compiler.CompilationEngine", filename};
