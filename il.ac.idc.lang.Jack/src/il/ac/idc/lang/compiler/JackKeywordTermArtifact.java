@@ -4,6 +4,10 @@ public class JackKeywordTermArtifact extends JackTermArtifact {
 
 	String keyword;
 
+	public JackKeywordTermArtifact(String keyword) {
+		this.keyword = keyword;
+	}
+	
 	@Override
 	public String writeVMCode() {
 		switch(keyword) {

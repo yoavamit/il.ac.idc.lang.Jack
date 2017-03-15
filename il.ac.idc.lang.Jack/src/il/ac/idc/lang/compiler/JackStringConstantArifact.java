@@ -4,6 +4,10 @@ public class JackStringConstantArifact extends JackTermArtifact {
 
 	String constant;
 
+	public JackStringConstantArifact(String val) {
+		constant = val;
+	}
+	
 	@Override
 	public String writeVMCode() {
 		StringBuilder builder = new StringBuilder();

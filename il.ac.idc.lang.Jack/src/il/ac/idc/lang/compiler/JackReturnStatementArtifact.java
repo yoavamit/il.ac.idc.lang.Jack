@@ -6,12 +6,14 @@ public class JackReturnStatementArtifact extends JackStatementArtifact {
 	
 	@Override
 	public String writeVMCode() {
+		String returnString = "";
 		if (expression != null) {
 			expression.parent = this;
-			return expression.writeVMCode();
+			returnString = expression.writeVMCode();
 		} else {
-			return "push constant 0\n";
+			returnString = "push constant 0\n";
 		}
+		return returnString + "return\n";
 	}
 
 }

@@ -25,7 +25,7 @@ public abstract class JackSubroutineArtifact implements IJackLanguageArtifact {
 	public String writeVMCode() {
 		StringBuilder builder = new StringBuilder();
 		String className = ((JackClassArtifact)parent).name;
-		builder.append("label " + className + "." + name + "\n");
+		builder.append("function " + className + "." + name + " " + arguments.size() +"\n");
 		for (int i = 0; i < locals.size(); i++) {
 			builder.append("push constant 0\n");
 		}
