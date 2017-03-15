@@ -21,17 +21,21 @@ Require-Bundle: org.eclipse.xtext;visibility:=reexport,
  org.eclipse.xtext.xbase.lib,
  org.objectweb.asm;bundle-version="[5.0.1,6.0.0)";resolution:=optional,
  org.eclipse.debug.core;bundle-version="3.10.100",
- javax.xml;bundle-version="1.3.4"
+ javax.xml;bundle-version="1.3.4",
+ org.eclipse.core.runtime;bundle-version="3.12.0"
 Import-Package: javax.xml.bind,
  org.apache.log4j,
  org.eclipse.xtext.xbase.lib
 Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Export-Package: il.ac.idc.lang,
+ il.ac.idc.lang.emulator,
  il.ac.idc.lang.formatting,
  il.ac.idc.lang.generator,
+ il.ac.idc.lang.hvm,
  il.ac.idc.lang.jack,
  il.ac.idc.lang.jack.impl,
  il.ac.idc.lang.jack.util,
+ il.ac.idc.lang.launching,
  il.ac.idc.lang.parser.antlr,
  il.ac.idc.lang.parser.antlr.internal,
  il.ac.idc.lang.scoping,

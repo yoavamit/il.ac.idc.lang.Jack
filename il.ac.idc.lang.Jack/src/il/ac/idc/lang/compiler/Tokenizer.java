@@ -105,11 +105,11 @@ public class Tokenizer {
 	 * Initially, there is no current token.
 	 */
 	public void advance() {
-		// skip empty lines
-		while (currentLine == null || currentLine.isEmpty()) {
+		// skip empty lines and comments
+		while (currentLine == null || currentLine.isEmpty() || currentLine.startsWith("//") || currentLine.startsWith("/*")) {
 			currentLine = scanner.nextLine().trim();
+			skipComments();
 		}
-		skipComments();
 		// check for keyword
 		for (String key : keywords.keySet()) {
 			if (currentLine.startsWith(key)) {
@@ -133,6 +133,7 @@ public class Tokenizer {
 			while(first >= '0' && first <= '9') {
 				currentToken += first;
 				i++;
+				first = currentLine.charAt(i);
 			}
 			currentLine = currentLine.substring(i).trim();
 			return;

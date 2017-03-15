@@ -19,7 +19,23 @@
            id="il.ac.idc.lang.launching.Hack">
      </launchConfigurationType>
   </extension>
-
-
+  <extension
+        point="org.eclipse.debug.core.launchConfigurationTypes">
+     <launchConfigurationType
+           name="Hack VM"
+           delegate="il.ac.idc.lang.launching.HackVMLaunchConfigurationDelegate"
+           modes="run, debug"
+           id="il.ac.idc.lang.launching.Hack.vm">
+     </launchConfigurationType>
+  </extension>
+  <extension
+        point="org.eclipse.debug.core.launchConfigurationTypes">
+     <launchConfigurationType
+           name="Jack Compiler"
+           delegate="il.ac.idc.lang.launching.JackCompilerLaunchConfigurationDelegate"
+           modes="run"
+           id="il.ac.idc.lang.launching.Jack.compiler">
+     </launchConfigurationType>
+  </extension>
 
 </plugin>

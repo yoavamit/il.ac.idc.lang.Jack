@@ -14,19 +14,17 @@ import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.model.ILaunchConfigurationDelegate;
 import org.osgi.framework.Bundle;
 
-public class HackLaunchConfigurationDelegate implements ILaunchConfigurationDelegate {
+public class JackCompilerLaunchConfigurationDelegate implements ILaunchConfigurationDelegate {
 
 	@Override
 	public void launch(ILaunchConfiguration configuration, String mode, ILaunch launch, IProgressMonitor monitor)
 			throws CoreException {
 		String filename = configuration.getAttribute(IHackLaunchConfigurationConstants.ATTR_PROGRAM_FILENAME, "");
-		String format = configuration.getAttribute(IHackLaunchConfigurationConstants.ATTR_PROGRAM_FORMAT, "s");
 		String classPath = getPluginPath(); 
+		System.out.println(filename);
 		String[] cmd = new String[] {"java", 
 				"-cp", classPath, 
-				"il.ac.idc.lang.emulator.CPUEmulator", 
-				"--inputFile", filename, 
-				"--format", format};
+				"il.ac.idc.lang.compiler.CompilationEngine", filename};
 		Process process = DebugPlugin.exec(cmd, null);
 		DebugPlugin.newProcess(launch, process, null);
 	}
@@ -41,4 +39,5 @@ public class HackLaunchConfigurationDelegate implements ILaunchConfigurationDele
 		}
 		return null;
 	}
+
 }

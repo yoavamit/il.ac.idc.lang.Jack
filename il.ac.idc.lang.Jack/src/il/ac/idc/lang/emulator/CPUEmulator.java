@@ -1,6 +1,7 @@
 package il.ac.idc.lang.emulator;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -9,11 +10,9 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.xtext.util.StringInputStream;
-
 public class CPUEmulator {
 
-	private int[] ram = new int[1 << 16];
+	private short[] ram = new short[1 << 16];
 	private Integer[] rom = new Integer[1 << 16];
 	private List<Integer> breakpoints = new ArrayList<Integer>();
 	private final int A_INSTR_VALUE_MASK = -1 >> 17;
@@ -37,7 +36,7 @@ public class CPUEmulator {
 	}
 
 	public void loadProgram(String program, String format) throws IOException {
-		loadProgram(new StringInputStream(program), format);
+		loadProgram(new ByteArrayInputStream(program.getBytes()), format);
 	}
 	
 	public void loadProgram(File input, String format) throws IOException {
@@ -269,7 +268,7 @@ public class CPUEmulator {
 			}
 			int dest = (currentInstruction & C_INSTR_DEST_MASK) >> 3;
 			if ((dest & 1) > 0) {
-				ram[regA] = result;
+				ram[regA] = (short) result;
 			}
 			if ((dest & 2) > 0) {
 				regD = result;
@@ -314,27 +313,31 @@ public class CPUEmulator {
 	}
 	
 	public static void main(String[] args) {
-		String program = "0000000000000100\n"  // 4
-				       + "1110110000010000\n"  // D=A
-				       + "0100000000000000\n"  // @a
-				       + "1110001100001000\n"  // M=D (a=2)
-				       + "0000000000000010\n"  // 2
-				       + "1110110000010000\n"  // D=A (D=b)
-				       + "0100000000000000\n"  // @a
-				       + "1111000010010000\n"  // D=M+D
-				       + "0100000000000001\n"  // @res
-				       + "1110001100001000\n"  // M=D (@res=6)
-				       + "1110111000000000\n"; // EOP
+		if (args.length != 4) {
+			System.err.println("Error parsing command line options");
+			System.exit(1);
+		}
+		String inputFile = null;
+		String format = null;
+		for (int i = 0; i < args.length; i++) {
+			switch(args[i]) {
+			case "--input":
+			case "-i":
+				inputFile = args[i+1];
+				break;
+			case "--format":
+			case "-f":
+				format = args[i+1];
+				break;
+			}
+		}
 		CPUEmulator emulator = new CPUEmulator();
 		try {
-			emulator.loadProgram(program, "s");
+			emulator.loadProgram(new FileInputStream(new File(inputFile)), format);
 			emulator.run();
-			System.out.println("Current instruction pointer: " + emulator.getCurrentInstructionPointer());
-			System.out.println("Current \"D\" register: " + emulator.getRegD());
-			System.out.println("Current \"A\" register: " + emulator.getRegA());
-			System.out.println("Current \"M\" register: " + emulator.getRegM());
-		} catch (IOException e) {
-			System.out.println("Couldn't load program...");
+		} catch(IOException e) {
+			System.err.println("Failed to read input file: " + inputFile);
+			System.err.println(e.getMessage());
 		}
 	}
 }

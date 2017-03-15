@@ -1,4 +1,4 @@
-package il.ac.idc.lang.ui.launch;
+package il.ac.idc.lang.launching;
 
 public interface IHackLaunchConfigurationConstants {
 

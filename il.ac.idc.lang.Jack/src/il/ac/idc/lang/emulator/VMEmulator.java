@@ -1,13 +1,14 @@
 package il.ac.idc.lang.emulator;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
-
-import org.eclipse.xtext.util.StringInputStream;
 
 public class VMEmulator {
 
@@ -46,7 +47,14 @@ public class VMEmulator {
 	private short stackPointer;
 	private short thisPointer, thatPointer, localPointer, argPointer;
 	List<String> program = new ArrayList<>();
+	List<Integer> breakpoints = new ArrayList<>();
 	int pc;
+
+	private boolean isPaused = false;
+
+	public VMEmulator(InputStream stream, int port) {
+
+	}
 
 	public VMEmulator(InputStream stream) {
 		Scanner scanner = new Scanner(stream);
@@ -59,8 +67,8 @@ public class VMEmulator {
 			if (line.isEmpty() || line.startsWith("//")) {
 				continue;
 			}
-			if (line.startsWith("(")) {
-				labels.put(line.substring(1, line.indexOf("(")), commandAddress);
+			if (line.startsWith("label")) {
+				labels.put(line.split(" ")[1], commandAddress);
 			} else if (line.startsWith("function")) {
 				labels.put(line.split(" ")[1], commandAddress++);
 				program.add(line);
@@ -94,6 +102,25 @@ public class VMEmulator {
 
 	public boolean hasMoreCommands() {
 		return pc < program.size();
+	}
+
+	public void run() {
+		isPaused = false;
+		while (hasMoreCommands() && !isPaused) {
+			if (breakpoints.contains(pc)) {
+				isPaused = true;
+			} else {
+				processCommand();
+			}
+		}
+	}
+
+	public boolean isTerminated() {
+		return hasMoreCommands();
+	}
+
+	public boolean isPaused() {
+		return isPaused;
 	}
 
 	public void processCommand() {
@@ -167,7 +194,7 @@ public class VMEmulator {
 	}
 
 	private void processCall(String functionName, int args) {
-		switch(functionName) {
+		switch (functionName) {
 		case "Sys.halt":
 			System.out.println("VM halted");
 			pc = program.size();
@@ -177,7 +204,7 @@ public class VMEmulator {
 			try {
 				Thread.sleep(duration);
 			} catch (InterruptedException e) {
-				
+
 			}
 			break;
 		case "Sys.error":
@@ -226,12 +253,12 @@ public class VMEmulator {
 		case "Math.min":
 			x = popStack();
 			y = popStack();
-			pushStack((short) Math.min(x, y)); 
+			pushStack((short) Math.min(x, y));
 			break;
 		case "Math.max":
 			x = popStack();
 			y = popStack();
-			pushStack((short) Math.max(x,  y));
+			pushStack((short) Math.max(x, y));
 			break;
 		case "Math.sqrt":
 			x = popStack();
@@ -280,7 +307,7 @@ public class VMEmulator {
 			break;
 		case "String.eraseLastChar":
 			pointer = popStack();
-			for (short i = 0; i < ram[pointer -1]; i++) {
+			for (short i = 0; i < ram[pointer - 1]; i++) {
 				if (ram[pointer + i] == '\0') {
 					ram[pointer + i - 1] = '\0';
 					ram[pointer + i] = 0;
@@ -291,7 +318,7 @@ public class VMEmulator {
 		case "String.intValue":
 			pointer = popStack();
 			short digits = 0;
-			while(ram[pointer + digits] >= '0' && ram[pointer + digits] <= '9') {
+			while (ram[pointer + digits] >= '0' && ram[pointer + digits] <= '9') {
 				digits++;
 			}
 			val = 0;
@@ -311,10 +338,10 @@ public class VMEmulator {
 			pushStack((short) 8);
 			break;
 		case "String.doubleQuote":
-			pushStack((short) '\"'); 
+			pushStack((short) '\"');
 			break;
 		case "String.newLine":
-			pushStack((short)'\n');
+			pushStack((short) '\n');
 			break;
 		case "Array.new":
 			size = popStack();
@@ -432,46 +459,19 @@ public class VMEmulator {
 	}
 
 	public static void main(String[] args) {
-		String program = "function Main.main 0\n"
-				+ "push constant 6\n"
-				+ "push constant 8\n"
-				+ "call Class1.set 2\n"
-				+ "pop temp 0 // Dumps the return value\n"
-				+ "call Class1.get 0\n"
-				+ "return\n"
-				
-				+ "// Stores two supplied arguments in static[0] and static[1].\n" 
-				+ "function Class1.set 0\n"
-				+ "push argument 0\n" 
-				+ "pop static 0\n" 
-				+ "push argument 1\n" 
-				+ "pop static 1\n" 
-				+ "push constant 0\n"
-				+ "return\n"
-
-				+ "// Returns static[0] - static[1].\n" 
-				+ "function Class1.get 0\n" 
-				+ "push static 0\n"
-				+ "push static 1\n" 
-				+ "sub\n"
-				+ "push constant 10\n"
-				+ "call String.new 1\n"
-				+ "push constant 123\n"
-				+ "call String.setInt 2\n"
-				+ "push constant 2049\n"
-				+ "call String.intValue 1\n"
-				+ "return";
-		VMEmulator vm = new VMEmulator(new StringInputStream(program));
-		while (vm.hasMoreCommands()) {
-			vm.processCommand();
+		if (args.length != 1) {
+			System.err.println("Error parsing command line arguments");
+			System.exit(1);
 		}
-		short[] stack = vm.getStack();
-		for (int i = 0; i < stack.length; i++) {
-			System.out.println((STACK_OFFSET + i) + ": " + stack[i]);
-		}
-		System.out.println("freePointer=" + vm.freeHeapPointer);
-		for (short i = HEAP_OFFSET; i < vm.freeHeapPointer; i++) {
-			System.out.println(i + ": " + vm.ram[i]);
+		String program = args[0];
+		try {
+			VMEmulator vm = new VMEmulator(new FileInputStream(new File(program)));
+			while (vm.hasMoreCommands()) {
+				vm.processCommand();
+			}
+		} catch (IOException e) {
+			System.err.println("Failed reading VM program: " + program);
+			System.err.println(e.getMessage());
 		}
 	}
 }

@@ -409,6 +409,22 @@
      </launchConfigurationTypeImage>
   </extension>
   <extension
+        point="org.eclipse.debug.ui.launchConfigurationTypeImages">
+     <launchConfigurationTypeImage
+           icon="icons/hack.gif"
+           configTypeID="il.ac.idc.lang.launching.Hack.vm"
+           id="il.ac.idc.lang.launching.Hack.icon">
+     </launchConfigurationTypeImage>
+  </extension>
+  <extension
+        point="org.eclipse.debug.ui.launchConfigurationTypeImages">
+     <launchConfigurationTypeImage
+           icon="icons/hack.gif"
+           configTypeID="il.ac.idc.lang.launching.Jack.compiler"
+           id="il.ac.idc.lang.launching.Jack.icon">
+     </launchConfigurationTypeImage>
+  </extension>
+  <extension
         point="org.eclipse.debug.ui.launchConfigurationTabGroups">
      <launchConfigurationTabGroup
            type="il.ac.idc.lang.launching.Hack"
@@ -416,5 +432,20 @@
            id="il.ac.idc.lang.ui.launch.tabGroup.Hack">
      </launchConfigurationTabGroup>
   </extension>
-
+  <extension
+        point="org.eclipse.debug.ui.launchConfigurationTabGroups">
+     <launchConfigurationTabGroup
+           type="il.ac.idc.lang.launching.Hack.vm"
+           class="il.ac.idc.lang.ui.launch.HackVMLaunchConfigurationTabGroup"
+           id="il.ac.idc.lang.ui.launch.tabGroup.Hack.vm">
+     </launchConfigurationTabGroup>
+  </extension>
+  <extension
+        point="org.eclipse.debug.ui.launchConfigurationTabGroups">
+     <launchConfigurationTabGroup
+           type="il.ac.idc.lang.launching.Jack.compiler"
+           class="il.ac.idc.lang.ui.launch.JackCompilerLaunchConfigurationTabGroup"
+           id="il.ac.idc.lang.ui.launch.tabGroup.Jack.compiler">
+     </launchConfigurationTabGroup>
+  </extension>
 </plugin>
