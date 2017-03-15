@@ -1,9 +1,14 @@
 package il.ac.idc.lang.emulator;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -46,16 +51,24 @@ public class VMEmulator {
 	private short[] ram = new short[1 << 16];
 	private short stackPointer;
 	private short thisPointer, thatPointer, localPointer, argPointer;
-	List<String> program = new ArrayList<>();
-	List<Integer> breakpoints = new ArrayList<>();
-	int pc;
+	private ServerSocket server;
+	private int eventPort;
+	private boolean debug = false;;
+	private List<String> program = new ArrayList<>();
+	private List<Integer> breakpoints = new ArrayList<>();
+	private int pc;
 
 	private boolean isPaused = false;
+	private boolean isTerminated = false;
 
-	public VMEmulator(InputStream stream, int port) {
-
+	public VMEmulator(InputStream stream, int requestPort, int eventPort) throws IOException {
+		this(stream);
+		server = new ServerSocket(requestPort);
+		this.eventPort = eventPort;
+		isPaused = true;
+		this.debug = true;
 	}
-
+	
 	public VMEmulator(InputStream stream) {
 		Scanner scanner = new Scanner(stream);
 		program.add("call Sys.init 0");
@@ -82,48 +95,127 @@ public class VMEmulator {
 		scanner.close();
 	}
 
-	public short[] getStack() {
-		short[] stack = new short[stackPointer - STACK_OFFSET];
-		System.arraycopy(ram, 256, stack, 0, stackPointer - STACK_OFFSET);
-		return stack;
+	private void sendDebugEvent(String event) throws IOException {
+		Socket debugClient = new Socket("127.0.0.1", eventPort);
+		PrintWriter out = new PrintWriter(debugClient.getOutputStream());
+		out.println(event);
+		debugClient.close();
 	}
-
-	short popStack() {
+	
+	private String parseStack(short[] stack) {
+		return null;
+	}
+	
+	private String parseHeap(short[] heap) {
+		List<String> objects = new ArrayList<>();
+		int i = 0;
+		while(i < heap.length) {
+			int size = heap[i++];
+			String[] object = new String[size];
+			for (int j = i; j < i + size - 1; j++) {
+				object[j-i] = "" + heap[j];
+			}
+			object[size - 1] += "" + heap[i + size - 1];
+			i += size;
+			objects.add(String.join(",", object));
+		}
+		String[] heapString = objects.toArray(new String[]{});
+		return String.join(",", heapString);
+	}
+	
+	private void sendResponse(Socket client, String response) throws IOException {
+		PrintWriter out = new PrintWriter(client.getOutputStream());
+		out.println(response);
+	}
+	
+	private void processDebugCommand() throws IOException {
+		Socket client = server.accept();
+		BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream()));
+		String[] command = reader.readLine().split("|");
+		switch(command[0]) {
+		case "clear":
+			breakpoints.remove(new Integer(command[1]));
+			break;
+		case "data":
+			short[] heap = new short[freeHeapPointer - HEAP_OFFSET];
+			System.arraycopy(ram, HEAP_OFFSET, heap, 0, heap.length);
+			String heapString = parseHeap(heap);
+			sendResponse(client, heapString);
+			break;
+		case "exit":
+			isTerminated = true;
+			break;
+		case "resume":
+			isPaused = false;
+			sendDebugEvent("resumed");
+			break;
+		case "set":
+			breakpoints.add(new Integer(command[1]));
+			break;
+		case "stack":
+			short[] stack = new short[stackPointer - STACK_OFFSET];
+			System.arraycopy(ram, 256, stack, 0, stack.length);
+			String stackString = parseStack(stack);
+			sendResponse(client, stackString);
+			break;
+		case "step":
+			if (hasMoreCommands()) {
+				processCommand();
+			}
+			break;
+		case "suspend":
+			isPaused = true;
+			break;
+		case "var":
+			// TODO
+			break;
+		default:
+			sendResponse(client, "Unknown command: " + command[0]);
+		}
+		client.close();
+	}
+	
+	private short popStack() {
 		stackPointer--;
 		short val = ram[stackPointer];
 		ram[stackPointer] = 0;
 		return val;
 	}
 
-	void pushStack(short val) {
+	private void pushStack(short val) {
 		ram[stackPointer] = val;
 		stackPointer++;
 	}
 
-	public boolean hasMoreCommands() {
+	private boolean hasMoreCommands() {
 		return pc < program.size();
 	}
 
-	public void run() {
-		isPaused = false;
-		while (hasMoreCommands() && !isPaused) {
-			if (breakpoints.contains(pc)) {
-				isPaused = true;
-			} else {
-				processCommand();
+	public void run() throws IOException {
+		if (debug) {
+			sendDebugEvent("started");
+		}
+		while (hasMoreCommands()) {
+			if (isTerminated) {
+				break;
 			}
+			if (isPaused) {
+				sendDebugEvent("suspended");
+				processDebugCommand();
+			} else {
+				if (breakpoints.contains(pc)) {
+					isPaused = true;
+				} else {
+					processCommand();
+				}
+			}
+		}
+		if (debug) {
+			sendDebugEvent("terminated");
 		}
 	}
 
-	public boolean isTerminated() {
-		return hasMoreCommands();
-	}
-
-	public boolean isPaused() {
-		return isPaused;
-	}
-
-	public void processCommand() {
+	private void processCommand() {
 		String[] command = program.get(pc).split(" ");
 		CommandType type = commandsMap.get(command[0]);
 		switch (type) {
@@ -459,19 +551,35 @@ public class VMEmulator {
 	}
 
 	public static void main(String[] args) {
-		if (args.length != 1) {
-			System.err.println("Error parsing command line arguments");
-			System.exit(1);
-		}
-		String program = args[0];
-		try {
-			VMEmulator vm = new VMEmulator(new FileInputStream(new File(program)));
-			while (vm.hasMoreCommands()) {
-				vm.processCommand();
+		String inputFile = null;
+		int requestPort = 0, eventPort = 0;
+		boolean debug = false;
+		if (args.length == 1) {
+			inputFile = args[0];
+		} else if (args.length == 6) {
+			for (int i = 0; i < args.length; i++) {
+				if (args[i].equals("--debug") || args[i].equals("-d")) {
+					debug = true;
+				} else if (args[i].equals("--eventPort")) {
+					eventPort = Integer.parseInt(args[i+1]);
+				} else if (args[i].equals("--requestPort")) {
+					requestPort = Integer.parseInt(args[i+1]);
+				}
 			}
+			inputFile = args[args.length - 1];
+		}
+		try {
+			VMEmulator vm = null;
+			if (debug) {
+				vm = new VMEmulator(new FileInputStream(new File(inputFile)), requestPort, eventPort);
+			} else {
+				vm = new VMEmulator(new FileInputStream(new File(inputFile)));
+			}
+			vm.run();
 		} catch (IOException e) {
-			System.err.println("Failed reading VM program: " + program);
+			System.err.println("Failed reading VM program: " + inputFile);
 			System.err.println(e.getMessage());
+			e.printStackTrace();
 		}
 	}
 }
