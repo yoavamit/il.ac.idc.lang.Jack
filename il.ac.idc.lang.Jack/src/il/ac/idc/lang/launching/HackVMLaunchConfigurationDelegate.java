@@ -34,9 +34,12 @@ public class HackVMLaunchConfigurationDelegate implements ILaunchConfigurationDe
 		commandList.add(classPath);
 		commandList.add("il.ac.idc.lang.emulator.VMEmulator");
 		commandList.add(filename);
+		int port1 = 0, port2 = 0;
 		if (mode.equals(ILaunchManager.DEBUG_MODE)) {
 			String requestPort = configuration.getAttribute(IHackLaunchConfigurationConstants.ATTR_VM_EMULATOR_DEBUG_REQUEST_PORT, "");
 			String eventPort = configuration.getAttribute(IHackLaunchConfigurationConstants.ATTR_VM_EMULATOR_DEBUG_EVENT_PORT, "");
+			port1 = Integer.parseInt(requestPort);
+			port2 = Integer.parseInt(eventPort);
 			commandList.add("--debug");
 			commandList.add("--requestPort");
 			commandList.add(requestPort);
@@ -45,9 +48,9 @@ public class HackVMLaunchConfigurationDelegate implements ILaunchConfigurationDe
 		}
 		String[] cmd = commandList.toArray(new String[] {});
 		Process process = DebugPlugin.exec(cmd, null);
-		IProcess p = DebugPlugin.newProcess(launch, process, null);
+		IProcess p = DebugPlugin.newProcess(launch, process, "VMEmulator[" + filename +  "]");
 		if (mode.equals(ILaunchManager.DEBUG_MODE)) {
-			IDebugTarget target = new JackVMDebugTarget(p);
+			IDebugTarget target = new JackVMDebugTarget(launch, p, port1, port2);
 			launch.addDebugTarget(target);
 		}
 	}

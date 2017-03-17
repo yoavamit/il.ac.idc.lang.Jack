@@ -23,6 +23,7 @@ public class VMEmulator {
 
 	private static final Map<String, CommandType> commandsMap = new HashMap<>();
 	private static Map<String, Integer> labels = new HashMap<>();
+	private static Map<String,Integer> functions = new HashMap<>();
 
 	static {
 		commandsMap.put("push", CommandType.C_PUSH);
@@ -43,6 +44,39 @@ public class VMEmulator {
 		commandsMap.put("call", CommandType.C_CALL);
 	}
 
+	class FrameReference {
+		private String function;
+		private int stackPointer, args;
+		
+		public FrameReference(String function, int ref, int args) {
+			this.function = function;
+			this.stackPointer = ref;
+			this.args = args;
+		}
+		
+		/**
+		 * Returns a serialized form of the stack frame
+		 * "functionName|pc|arg0:val|arg1:val|local0:val|local1:val|local2:val...
+		 */
+		@Override
+		public String toString() {
+			int numLocals = functions.get(function);
+			int argPointer = stackPointer - args - 5;
+			int localPointer = stackPointer;
+			int pcPointer = stackPointer - 5;
+			String[] frame = new String[numLocals + args + 2];
+			frame[0] = function;
+			frame[1] = "" + (ram[pcPointer] - 1);
+			for (int i = 0; i < args; i++) {
+				frame[i + 2] = "arg" + i + ":" + ram[argPointer + i];
+			}
+			for (int i = 0; i < numLocals; i++) {
+				frame[args + i + 2] = "local" + i + ":" + ram[localPointer + i];
+			}
+			return String.join("|", frame);
+		}
+	}
+	
 	private static final short HEAP_OFFSET = 2048;
 	private static final short STACK_OFFSET = 256;
 	private static final short STATIC_OFFSET = 16;
@@ -51,29 +85,48 @@ public class VMEmulator {
 	private short[] ram = new short[1 << 16];
 	private short stackPointer;
 	private short thisPointer, thatPointer, localPointer, argPointer;
-	private ServerSocket server;
-	private int eventPort;
-	private boolean debug = false;;
+	private ServerSocket server, eventServer;
+	private Socket client, eventClient;
+	private BufferedReader reader;
+	private boolean debug = false;
 	private List<String> program = new ArrayList<>();
 	private List<Integer> breakpoints = new ArrayList<>();
+	private List<FrameReference> frames = new ArrayList<>();
 	private int pc;
 
 	private boolean isPaused = false;
 	private boolean isTerminated = false;
 
-	public VMEmulator(InputStream stream, int requestPort, int eventPort) throws IOException {
-		this(stream);
+	public VMEmulator(File file, int requestPort, int eventPort) throws IOException {
+		this(file);
 		server = new ServerSocket(requestPort);
-		this.eventPort = eventPort;
+		eventServer = new ServerSocket(eventPort);
 		isPaused = true;
 		this.debug = true;
 	}
 	
-	public VMEmulator(InputStream stream) {
-		Scanner scanner = new Scanner(stream);
+	private static int commandAddress;
+	
+	public VMEmulator(File file) throws IOException {
 		program.add("call Sys.init 0");
 		program.add("call Sys.halt 0");
-		int commandAddress = 2;
+		commandAddress = 2;
+		if (file.isFile()) {
+			readFile(file);
+		} else if (file.isDirectory()) {
+			for (File f : file.listFiles()) {
+				if (f.getName().endsWith(".vm")) {
+					readFile(f);
+				}
+			}
+		}
+		stackPointer = STACK_OFFSET;
+		localPointer = (short) (stackPointer + 5);
+	}
+	
+	private void readFile(File file) throws IOException {
+		InputStream stream = new FileInputStream(file);
+		Scanner scanner = new Scanner(stream);
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
 			line = line.trim();
@@ -83,27 +136,34 @@ public class VMEmulator {
 			if (line.startsWith("label")) {
 				labels.put(line.split(" ")[1], commandAddress);
 			} else if (line.startsWith("function")) {
-				labels.put(line.split(" ")[1], commandAddress++);
+				String[] func = line.split(" ");
+				functions.put(func[1], Integer.parseInt(func[2]));
+				labels.put(func[1], commandAddress++);
 				program.add(line);
 			} else {
 				program.add(line);
 				commandAddress++;
 			}
 		}
-		stackPointer = STACK_OFFSET;
-		localPointer = (short) (stackPointer + 5);
 		scanner.close();
 	}
 
 	private void sendDebugEvent(String event) throws IOException {
-		Socket debugClient = new Socket("127.0.0.1", eventPort);
-		PrintWriter out = new PrintWriter(debugClient.getOutputStream());
+		if (eventClient == null) {
+			eventClient = eventServer.accept();
+		}
+		PrintWriter out = new PrintWriter(eventClient.getOutputStream());
 		out.println(event);
-		debugClient.close();
+		out.flush();
+		System.out.println("Sent event: " + event);
 	}
 	
-	private String parseStack(short[] stack) {
-		return null;
+	private String parseStack() {
+		String[] frameStrings = new String[frames.size()];
+		for (int i = 0; i < frameStrings.length; i++) {
+			frameStrings[i] = frames.get(i).toString();
+		}
+		return String.join("#", frameStrings);
 	}
 	
 	private String parseHeap(short[] heap) {
@@ -126,12 +186,17 @@ public class VMEmulator {
 	private void sendResponse(Socket client, String response) throws IOException {
 		PrintWriter out = new PrintWriter(client.getOutputStream());
 		out.println(response);
+		out.flush();
 	}
 	
 	private void processDebugCommand() throws IOException {
-		Socket client = server.accept();
-		BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream()));
-		String[] command = reader.readLine().split("|");
+		if (client == null) {
+			client = server.accept();
+			reader = new BufferedReader(new InputStreamReader(client.getInputStream()));
+		}
+		String cmd = reader.readLine();
+		String[] command = cmd.split("\\|");
+		String response = "ok";
 		switch(command[0]) {
 		case "clear":
 			breakpoints.remove(new Integer(command[1]));
@@ -139,40 +204,41 @@ public class VMEmulator {
 		case "data":
 			short[] heap = new short[freeHeapPointer - HEAP_OFFSET];
 			System.arraycopy(ram, HEAP_OFFSET, heap, 0, heap.length);
-			String heapString = parseHeap(heap);
-			sendResponse(client, heapString);
+			response = parseHeap(heap);
 			break;
 		case "exit":
 			isTerminated = true;
 			break;
 		case "resume":
 			isPaused = false;
-			sendDebugEvent("resumed");
+			sendDebugEvent("resumed|client");
 			break;
 		case "set":
 			breakpoints.add(new Integer(command[1]));
 			break;
 		case "stack":
-			short[] stack = new short[stackPointer - STACK_OFFSET];
-			System.arraycopy(ram, 256, stack, 0, stack.length);
-			String stackString = parseStack(stack);
-			sendResponse(client, stackString);
+//			short[] stack = new short[stackPointer - STACK_OFFSET];
+//			System.arraycopy(ram, 256, stack, 0, stack.length);
+			response = parseStack();
 			break;
 		case "step":
 			if (hasMoreCommands()) {
 				processCommand();
 			}
+			isPaused = true;
+			sendDebugEvent("suspended|step");
 			break;
 		case "suspend":
 			isPaused = true;
+			sendDebugEvent("suspended|client");
 			break;
 		case "var":
 			// TODO
 			break;
 		default:
-			sendResponse(client, "Unknown command: " + command[0]);
+			response = "Unknown command: " + command[0];
 		}
-		client.close();
+		sendResponse(client, response);
 	}
 	
 	private short popStack() {
@@ -194,25 +260,34 @@ public class VMEmulator {
 	public void run() throws IOException {
 		if (debug) {
 			sendDebugEvent("started");
+			isPaused = true;
+			sendDebugEvent("suspended|client");
 		}
 		while (hasMoreCommands()) {
 			if (isTerminated) {
 				break;
 			}
-			if (isPaused) {
-				sendDebugEvent("suspended");
-				processDebugCommand();
-			} else {
+			if (!isPaused) {
 				if (breakpoints.contains(pc)) {
-					isPaused = true;
+					sendDebugEvent("suspended|breakpoint");
 				} else {
 					processCommand();
 				}
+			} else {
+				processDebugCommand();
 			}
 		}
 		if (debug) {
 			sendDebugEvent("terminated");
 		}
+		if (client != null) {
+			client.close();
+		}
+		if (eventClient != null) {
+			eventClient.close();
+		}
+		server.close();
+		eventServer.close();
 	}
 
 	private void processCommand() {
@@ -449,6 +524,8 @@ public class VMEmulator {
 			pushStack(argPointer);
 			pushStack(thisPointer);
 			pushStack(thatPointer);
+			FrameReference ref = new FrameReference(functionName, stackPointer, args);
+			frames.add(ref);
 			argPointer = (short) (stackPointer - args - 5);
 			localPointer = stackPointer;
 			pc = labels.get(functionName);
@@ -551,12 +628,10 @@ public class VMEmulator {
 	}
 
 	public static void main(String[] args) {
-		String inputFile = null;
+		String inputFile = args[0];
 		int requestPort = 0, eventPort = 0;
 		boolean debug = false;
-		if (args.length == 1) {
-			inputFile = args[0];
-		} else if (args.length == 6) {
+		if (args.length == 6) {
 			for (int i = 0; i < args.length; i++) {
 				if (args[i].equals("--debug") || args[i].equals("-d")) {
 					debug = true;
@@ -566,18 +641,16 @@ public class VMEmulator {
 					requestPort = Integer.parseInt(args[i+1]);
 				}
 			}
-			inputFile = args[args.length - 1];
 		}
 		try {
 			VMEmulator vm = null;
 			if (debug) {
-				vm = new VMEmulator(new FileInputStream(new File(inputFile)), requestPort, eventPort);
+				vm = new VMEmulator(new File(inputFile), requestPort, eventPort);
 			} else {
-				vm = new VMEmulator(new FileInputStream(new File(inputFile)));
+				vm = new VMEmulator(new File(inputFile));
 			}
 			vm.run();
 		} catch (IOException e) {
-			System.err.println("Failed reading VM program: " + inputFile);
 			System.err.println(e.getMessage());
 			e.printStackTrace();
 		}
