@@ -3,26 +3,39 @@ package il.ac.idc.lang.compiler;
 import java.util.ArrayList;
 import java.util.List;
 
-public class JackSubroutineCallTerm extends JackTermArtifact {
+public class JackSubroutineCallTerm extends AbstractJackTerm {
 
+	private static int id = 0;
+	private List<JackExpression> parameters = new ArrayList<>();
 	String accessor;
 	String subroutineName;
-	List<JackExpressionArtifact> parameters = new ArrayList<>();
 	
-	private JackClassArtifact getKlass() {
-		IJackLanguageArtifact klass = getParent();
-		while(!(klass instanceof JackClassArtifact)) {
-			klass = klass.getParent();
-		}
-		return (JackClassArtifact) klass;
+	public JackSubroutineCallTerm(int lineNumber) {
+		super(lineNumber);
+		id++;
 	}
 	
-	private JackSubroutineArtifact getSubroutine() {
-		IJackLanguageArtifact method = getParent();
-		while(!(method instanceof JackSubroutineArtifact)) {
+	void setParameters(List<JackExpression> params) {
+		for (JackExpression param : params) {
+			param.parent = this;
+			parameters.add(param);
+		}
+	}
+	
+	private JackClass getKlass() {
+		AbstractJackObject klass = getParent();
+		while(!(klass instanceof JackClass)) {
+			klass = klass.getParent();
+		}
+		return (JackClass) klass;
+	}
+	
+	private AbstractJackSubroutine getSubroutine() {
+		AbstractJackObject method = getParent();
+		while(!(method instanceof AbstractJackSubroutine)) {
 			method = method.getParent();
 		}
-		return (JackSubroutineArtifact) method;
+		return (AbstractJackSubroutine) method;
 	}
 	
 	@Override
@@ -34,13 +47,14 @@ public class JackSubroutineCallTerm extends JackTermArtifact {
 		// 3) varName.methodName()
 		// 4) methodName()
 		String className = "";
-		JackClassArtifact klass = getKlass();
+		JackClass klass = getKlass();
 		boolean isStatic = false;
 		
+		builder.append("// " + getName() + "\n");
 		if (accessor == null) {
-			className = klass.name;
-			for (JackSubroutineArtifact subroutine : klass.subroutines) {
-				if (subroutine.name.equals(subroutineName) && subroutine instanceof JackFunctionArtifact) {
+			className = klass.getName();
+			for (AbstractJackSubroutine subroutine : klass.subroutines) {
+				if (subroutine.name.equals(subroutineName) && subroutine instanceof JackFunction) {
 					isStatic = true;
 					break;
 				}
@@ -51,7 +65,7 @@ public class JackSubroutineCallTerm extends JackTermArtifact {
 		} else {
 			// check for varName.methodName()
 			// need to find the variable and push it as the first parameter
-			JackSubroutineArtifact subroutine = getSubroutine();
+			AbstractJackSubroutine subroutine = getSubroutine();
 			//local
 			boolean found = false;
 			for (int i = 0; i < subroutine.locals.size(); i++) {
@@ -103,12 +117,16 @@ public class JackSubroutineCallTerm extends JackTermArtifact {
 		}
 		
 		// push parameters before calling the subroutine
-		for (JackExpressionArtifact parameter : parameters) {
-			parameter.parent = this;
+		for (JackExpression parameter : parameters) {
 			builder.append(parameter.writeVMCode());
 		}
 		int numParams = parameters.size() + (isStatic ? 0 : 1); 
 		builder.append("call " + className + "." + subroutineName + " " + numParams + "\n");
 		return builder.toString();
+	}
+
+	@Override
+	public String getName() {
+		return getClassName() + "." + getSubroutineName() + ":call-" + subroutineName + "-" + id;
 	}
 }

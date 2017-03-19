@@ -1,30 +1,42 @@
 package il.ac.idc.lang.compiler;
 
-public class JackArrayAccessTerm extends JackTermArtifact {
+public class JackArrayAccessTerm extends AbstractJackTerm {
 
+	private static int id = 0;
+	private JackExpression expression;
 	String varname;
-	JackExpressionArtifact expression;
 	
-	private JackSubroutineArtifact getMethod() {
-		IJackLanguageArtifact method = getParent();
-		while(!(method instanceof JackSubroutineArtifact)) {
-			method = method.getParent();
-		}
-		return (JackSubroutineArtifact) method;
+	public JackArrayAccessTerm(int lineNumber) {
+		super(lineNumber);
+		id++;
+	}
+
+	void setExpression(JackExpression exp) {
+		exp.parent = this;
+		this.expression = exp;
 	}
 	
-	private JackClassArtifact getKlass() {
-		IJackLanguageArtifact klass = getParent();
-		while(!(klass instanceof JackClassArtifact)) {
+	private AbstractJackSubroutine getMethod() {
+		AbstractJackObject method = getParent();
+		while(!(method instanceof AbstractJackSubroutine)) {
+			method = method.getParent();
+		}
+		return (AbstractJackSubroutine) method;
+	}
+	
+	private JackClass getKlass() {
+		AbstractJackObject klass = getParent();
+		while(!(klass instanceof JackClass)) {
 			klass = klass.getParent();
 		}
-		return (JackClassArtifact) klass;
+		return (JackClass) klass;
 	}
 	
 	@Override
 	public String writeVMCode() {
 		StringBuilder builder = new StringBuilder();
-		JackSubroutineArtifact subroutine = getMethod();
+		AbstractJackSubroutine subroutine = getMethod();
+		builder.append("// " + getName() + "\n");
 		// local
 		boolean found = false;
 		for (int i = 0; i < subroutine.locals.size(); i++) {
@@ -45,7 +57,7 @@ public class JackArrayAccessTerm extends JackTermArtifact {
 			}
 		}
 		// field
-		JackClassArtifact klass = getKlass();
+		JackClass klass = getKlass();
 		if (!found) {
 			for (int i = 0; i <klass.instanceVariables.size(); i++) {
 				if (klass.instanceVariables.get(i).name.equals(varname)) {
@@ -65,12 +77,16 @@ public class JackArrayAccessTerm extends JackTermArtifact {
 				}
 			}
 		}
-		expression.parent = this;
 		builder.append(expression.writeVMCode());
 		builder.append("add\n");
 		builder.append("pop pointer 1\n");
 		builder.append("push that 0\n");
 		return builder.toString();
+	}
+
+	@Override
+	public String getName() {
+		return getClassName() + "." + getSubroutineName() + ":term-array-access-" + varname + "-" + id;
 	}
 
 }

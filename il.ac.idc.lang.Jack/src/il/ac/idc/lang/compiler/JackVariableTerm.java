@@ -1,54 +1,66 @@
 package il.ac.idc.lang.compiler;
 
-public class JackVariableTerm extends JackTermArtifact {
+public class JackVariableTerm extends AbstractJackTerm {
+
+	private static int id = 0;
+	
+	public JackVariableTerm(int lineNumber) {
+		super(lineNumber);
+		id++;
+	}
 
 	String varname;
 	
-	private JackSubroutineArtifact getSubroutine() {
-		IJackLanguageArtifact sub = getParent();
-		while(!(sub instanceof JackSubroutineArtifact)) {
+	private AbstractJackSubroutine getSubroutine() {
+		AbstractJackObject sub = getParent();
+		while(!(sub instanceof AbstractJackSubroutine)) {
 			sub = sub.getParent();
 		}
-		return (JackSubroutineArtifact) sub;
+		return (AbstractJackSubroutine) sub;
 	}
 	
-	private JackClassArtifact getKlass() {
-		IJackLanguageArtifact klass = getParent();
-		while(!(klass instanceof JackClassArtifact)) {
+	private JackClass getKlass() {
+		AbstractJackObject klass = getParent();
+		while(!(klass instanceof JackClass)) {
 			klass = klass.getParent();
 		}
-		return (JackClassArtifact) klass;
+		return (JackClass) klass;
 	}
 	
 	@Override
 	public String writeVMCode() {
-		JackSubroutineArtifact sub = getSubroutine();
+		AbstractJackSubroutine sub = getSubroutine();
+		String code = "// " + getName() + "\n";
 		// local
 		for (int i = 0; i < sub.locals.size(); i++) {
 			if (sub.locals.get(i).name.equals(varname)) {
-				return "push local " + i + "\n";
+				code += "push local " + i + "\n";
 			}
 		}
 		// argument
 		for (int i = 0; i < sub.arguments.size(); i++) {
 			if (sub.arguments.get(i).name.equals(varname)) {
-				return "push argument " + i + "\n";
+				code += "push argument " + i + "\n";
 			}
 		}
-		JackClassArtifact klass = getKlass();
+		JackClass klass = getKlass();
 		// field
 		for (int i = 0; i < klass.instanceVariables.size(); i++) {
 			if (klass.instanceVariables.get(i).name.equals(varname)) {
-				return "push this " + i + "\n";
+				code += "push this " + i + "\n";
 			}
 		}
 		// static
 		for (int i = 0; i < klass.classVariables.size(); i++) {
 			if (klass.classVariables.get(i).name.equals(varname)) {
-				return "push static " + i + "\n";
+				code += "push static " + i + "\n";
 			}
 		}
-		return null;
+		return code;
 	}
 
+	@Override
+	public String getName() {
+		return getClassName() + "." + getSubroutineName() + ":term-var-" + varname +"-" + id;
+	}
 }

@@ -1,18 +1,33 @@
 package il.ac.idc.lang.compiler;
 
-public class JackExpressionArtifact extends JackTermArtifact {
+public class JackExpression extends AbstractJackTerm {
 
-	JackTermArtifact left;
+	private static int id = 0;
+	private AbstractJackTerm left;
+	private AbstractJackTerm right;
 	char op;
-	JackTermArtifact right;
+	
+	public JackExpression(int lineNumber) {
+		super(lineNumber);
+		id++;
+	}
+
+	void setLeft(AbstractJackTerm left) {
+		left.parent = this;
+		this.left = left;
+	}
+	
+	void setRight(AbstractJackTerm right) {
+		right.parent = this;
+		this.right = right;
+	}
 
 	@Override
 	public String writeVMCode() {
 		StringBuilder builder = new StringBuilder();
-		left.parent = this;
+		builder.append("// " + getName() + "\n");
 		builder.append(left.writeVMCode());
 		if (right != null) {
-			right.parent = this;
 			builder.append(right.writeVMCode());
 			switch(op) {
 			case '+':
@@ -46,4 +61,8 @@ public class JackExpressionArtifact extends JackTermArtifact {
 		return builder.toString();
 	}
 
+	@Override
+	public String getName() {
+		return getClassName() + "." + getSubroutineName() +":expression-" + id;
+	}
 }

@@ -6,7 +6,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,17 +23,8 @@ public class CompilationEngine {
 	 * @param in
 	 * @param out
 	 */
-	public CompilationEngine(InputStream in, OutputStream out) throws IOException {
+	public CompilationEngine(InputStream in) throws IOException {
 		tokenizer = new Tokenizer(in);
-	}
-
-	private static void writeVMCode(String str, OutputStream output) {
-		byte[] b = str.getBytes();
-		try {
-			output.write(b, 0, b.length);
-			output.flush();
-		} catch (IOException e) {
-		}
 	}
 
 	private void writeIdentifier() throws CompilationException {
@@ -107,12 +97,13 @@ public class CompilationEngine {
 	/**
 	 * Compiles and complete class.
 	 */
-	public String compileClass() throws CompilationException {
+	public JackClass compileClass() throws CompilationException {
 		processNext();
-		JackClassArtifact klass = null;
+		int lineNumber = tokenizer.getCurrentLineNumber();
+		JackClass klass = null;
 		if (tokenizer.tokenType() == TokenType.KEYWORD) {
 			writeKeyword(Keyword.CLASS); // class
-			klass = new JackClassArtifact(tokenizer.identifier());
+			klass = new JackClass(lineNumber, tokenizer.identifier());
 			writeIdentifier(); // className
 			writeSymbol('{');
 			if (tokenizer.tokenType() == TokenType.KEYWORD) {
@@ -121,7 +112,7 @@ public class CompilationEngine {
 				}
 				while (tokenizer.keyword() == Keyword.FUNCTION || tokenizer.keyword() == Keyword.CONSTRUCTOR
 						|| tokenizer.keyword() == Keyword.METHOD) {
-					klass.subroutines.add(compileSubroutine());
+					klass.addSubroutine(compileSubroutine());
 				}
 			}
 			if (tokenizer.tokenType() != TokenType.SYMBOL || tokenizer.symbol() != '}') {
@@ -131,7 +122,7 @@ public class CompilationEngine {
 		if (tokenizer.hasMoreTokens()) {
 			throw new CompilationException("Unexpected trailing text at end of class found");
 		}
-		return klass.writeVMCode();
+		return klass;
 	}
 
 	private void compileType() throws CompilationException {
@@ -145,26 +136,28 @@ public class CompilationEngine {
 	/**
 	 * Compiles a static declaration and or a field declaration.
 	 */
-	private void compileClassVarDecl(JackClassArtifact klass) throws CompilationException {
+	private void compileClassVarDecl(JackClass klass) throws CompilationException {
 		Keyword modifier = tokenizer.keyword();
+		int lineNumber = tokenizer.getCurrentLineNumber();
 		writeKeyword(new Keyword[] { Keyword.STATIC, Keyword.FIELD }); // static/field
 		Object type = tokenizer.tokenType() == TokenType.KEYWORD ? tokenizer.keyword() : tokenizer.identifier();
 		String varName = tokenizer.identifier();
-		JackVariableArtifact var = new JackVariableArtifact(varName, type.toString());
+		JackVariable var = new JackVariable(lineNumber, varName, type.toString());
 		if (modifier == Keyword.STATIC) {
-			klass.classVariables.add(var);
+			klass.addClassVariable(var);
 		} else {
-			klass.instanceVariables.add(var);
+			klass.addInstanceVariable(var);
 		}
 		writeIdentifier();
 		while (tokenizer.symbol() != ';') {
 			writeSymbol(',');
 			varName = tokenizer.identifier();
 			writeIdentifier();
+			var = new JackVariable(lineNumber, varName, type.toString());
 			if (modifier == Keyword.STATIC) {
-				klass.classVariables.add(new JackVariableArtifact(varName, type.toString()));
+				klass.addClassVariable(var);
 			} else {
-				klass.instanceVariables.add(new JackVariableArtifact(varName, type.toString()));
+				klass.addInstanceVariable(var);
 			}
 		}
 		writeSymbol(';');
@@ -173,9 +166,10 @@ public class CompilationEngine {
 	/**
 	 * Compiles a complete method, function or constructor.
 	 */
-	private JackSubroutineArtifact compileSubroutine() throws CompilationException {
-		JackSubroutineArtifact subroutine = null;
+	private AbstractJackSubroutine compileSubroutine() throws CompilationException {
+		AbstractJackSubroutine subroutine = null;
 		Keyword type = tokenizer.keyword();
+		int lineNumber = tokenizer.getCurrentLineNumber();
 		writeKeyword(new Keyword[] { Keyword.CONSTRUCTOR, Keyword.FUNCTION, Keyword.METHOD });
 		try {
 			compileType();
@@ -185,31 +179,31 @@ public class CompilationEngine {
 		String subroutineName = tokenizer.identifier();
 		switch(type) {
 		case CONSTRUCTOR:
-			subroutine = new JackConstructorArtifact(subroutineName);
+			subroutine = new JackConstructor(lineNumber, subroutineName);
 			break;
 		case FUNCTION:
-			subroutine = new JackFunctionArtifact(subroutineName);
+			subroutine = new JackFunction(lineNumber, subroutineName);
 			break;
 		case METHOD:
-			subroutine = new JackMethodArtifact(subroutineName);
+			subroutine = new JackMethod(lineNumber, subroutineName);
 			break;
 		default:
 			break;
 		}
 		writeIdentifier();
 		writeSymbol('(');
-		subroutine.arguments = compileParametersList();
+		subroutine.setArguments(compileParametersList());
 		writeSymbol(')');
 		writeSymbol('{');
 
 		// write variables
 		while (tokenizer.tokenType() == TokenType.KEYWORD && tokenizer.keyword() == Keyword.VAR) {
-			List<JackVariableArtifact> vars = compileVarDecl();
-			subroutine.locals.addAll(vars);
+			List<JackVariable> vars = compileVarDecl();
+			subroutine.addLocals(vars);
 		}
 		// write statements
-		List<JackStatementArtifact> statements = compileStatements();
-		subroutine.statements = statements;
+		List<AbstractJackStatement> statements = compileStatements();
+		subroutine.setStatements(statements);
 		writeSymbol('}');
 		return subroutine;
 	}
@@ -218,13 +212,14 @@ public class CompilationEngine {
 	 * Compiles a (possibly empty) parameter list, not including the enclosing
 	 * "()".
 	 */
-	private List<JackVariableArtifact> compileParametersList() throws CompilationException {
-		List<JackVariableArtifact> arguments = new ArrayList<>();
+	private List<JackVariable> compileParametersList() throws CompilationException {
+		List<JackVariable> arguments = new ArrayList<>();
+		int lineNumber = tokenizer.getCurrentLineNumber();
 		while (!(tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == ')')) {
 			Object type = tokenizer.tokenType() == TokenType.KEYWORD ? tokenizer.keyword() : tokenizer.identifier();
 			compileType();
 			String name = tokenizer.identifier();
-			arguments.add(new JackVariableArtifact(name, type.toString()));
+			arguments.add(new JackVariable(lineNumber, name, type.toString()));
 			writeIdentifier();
 			try {
 				writeSymbol(',');
@@ -237,18 +232,19 @@ public class CompilationEngine {
 	/**
 	 * Compiles and var declaration.
 	 */
-	private List<JackVariableArtifact> compileVarDecl() throws CompilationException {
-		List<JackVariableArtifact> list = new ArrayList<>();
+	private List<JackVariable> compileVarDecl() throws CompilationException {
+		List<JackVariable> list = new ArrayList<>();
 		writeKeyword(Keyword.VAR);
+		int lineNumber = tokenizer.getCurrentLineNumber();
 		Object type = tokenizer.tokenType() == TokenType.KEYWORD ? tokenizer.keyword() : tokenizer.identifier();
 		compileType(); // type
 		String name = tokenizer.identifier();
-		list.add(new JackVariableArtifact(name, type.toString()));
+		list.add(new JackVariable(lineNumber, name, type.toString()));
 		writeIdentifier(); // varName
 		while (!(tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == ';')) {
 			writeSymbol(',');
 			name = tokenizer.identifier();
-			list.add(new JackVariableArtifact(name, type.toString()));
+			list.add(new JackVariable(lineNumber, name, type.toString()));
 			writeIdentifier();
 		}
 		writeSymbol(';');
@@ -258,8 +254,8 @@ public class CompilationEngine {
 	/**
 	 * Compiles and sequence of statements, not including the enclosing "{}".
 	 */
-	private List<JackStatementArtifact> compileStatements() throws CompilationException {
-		List<JackStatementArtifact> statements = new ArrayList<>();
+	private List<AbstractJackStatement> compileStatements() throws CompilationException {
+		List<AbstractJackStatement> statements = new ArrayList<>();
 		while (!(tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == '}')) {
 			switch (tokenizer.keyword()) {
 			case DO:
@@ -287,9 +283,10 @@ public class CompilationEngine {
 	/**
 	 * Compiles a do statement.
 	 */
-	private JackDoStatementArtifact compileDo() throws CompilationException {
+	private JackDoStatement compileDo() throws CompilationException {
 		writeKeyword(Keyword.DO);
-		JackSubroutineCallTerm doStatement = new JackSubroutineCallTerm();
+		int line = tokenizer.getCurrentLineNumber();
+		JackSubroutineCallTerm doStatement = new JackSubroutineCallTerm(line);
 		String functionName = tokenizer.identifier();
 		doStatement.subroutineName = functionName;
 		writeIdentifier();
@@ -300,34 +297,34 @@ public class CompilationEngine {
 			writeIdentifier();
 		}
 		writeSymbol('(');
-		doStatement.parameters = compileExpressionList();
+		doStatement.setParameters(compileExpressionList());
 		writeSymbol(')');
 		writeSymbol(';');
-		JackDoStatementArtifact statement = new JackDoStatementArtifact();
-		statement.subroutine = doStatement;
+		JackDoStatement statement = new JackDoStatement(line, doStatement);
 		return statement;
 	}
 
 	/**
 	 * Compiles a let statement.
 	 */
-	private JackLetStatementArtifact compileLet() throws CompilationException {
-		JackLetStatementArtifact let = new JackLetStatementArtifact();
+	private JackLetStatement compileLet() throws CompilationException {
+		int line = tokenizer.getCurrentLineNumber();
+		JackLetStatement let = new JackLetStatement(line);
 		writeKeyword(Keyword.LET);
 		String assignTo = tokenizer.identifier();
 		writeIdentifier();
 		if (tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == '[') {
-			JackArrayAccessTerm arrayAccess = new JackArrayAccessTerm();
+			JackArrayAccessTerm arrayAccess = new JackArrayAccessTerm(line);
 			arrayAccess.varname = assignTo;
 			writeSymbol('[');
-			arrayAccess.expression = compileExpression();
+			arrayAccess.setExpression(compileExpression());
 			writeSymbol(']');
-			let.arrayAccess = arrayAccess;
+			let.setArrayAccess(arrayAccess);
 		} else {
 			let.assignee = assignTo;
 		}
 		writeSymbol('=');
-		let.expression = compileExpression();
+		let.setExpression(compileExpression());
 		writeSymbol(';');
 		return let;
 	}
@@ -335,14 +332,14 @@ public class CompilationEngine {
 	/**
 	 * Compiles a while statement.
 	 */
-	private JackWhileStatementArtifact compileWhile() throws CompilationException {
-		JackWhileStatementArtifact whileStatement = new JackWhileStatementArtifact();
+	private JackWhileStatement compileWhile() throws CompilationException {
+		JackWhileStatement whileStatement = new JackWhileStatement(tokenizer.getCurrentLineNumber());
 		writeKeyword(Keyword.WHILE);
 		writeSymbol('(');
-		whileStatement.condition = compileExpression();
+		whileStatement.setCondition(compileExpression());
 		writeSymbol(')');
 		writeSymbol('{');
-		whileStatement.statements = compileStatements();
+		whileStatement.setStatements(compileStatements());
 		writeSymbol('}');
 		return whileStatement;
 	}
@@ -350,11 +347,11 @@ public class CompilationEngine {
 	/**
 	 * Compiles a return statement.
 	 */
-	private JackReturnStatementArtifact compileReturn() throws CompilationException {
-		JackReturnStatementArtifact statement = new JackReturnStatementArtifact();
+	private JackReturnStatement compileReturn() throws CompilationException {
+		JackReturnStatement statement = new JackReturnStatement(tokenizer.getCurrentLineNumber());
 		writeKeyword(Keyword.RETURN);
 		if (!(tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == ';')) {
-			statement.expression = compileExpression();
+			statement.setExpression(compileExpression());
 		}
 		writeSymbol(';');
 		return statement;
@@ -363,19 +360,19 @@ public class CompilationEngine {
 	/**
 	 * Compiles an if statement, possibly with a trailing else clause.
 	 */
-	private JackIfStatementArtifact compileIf() throws CompilationException {
-		JackIfStatementArtifact ifStatement = new JackIfStatementArtifact();
+	private JackIfStatement compileIf() throws CompilationException {
+		JackIfStatement ifStatement = new JackIfStatement(tokenizer.getCurrentLineNumber());
 		writeKeyword(Keyword.IF);
 		writeSymbol('(');
-		ifStatement.condition = compileExpression();
+		ifStatement.setCondition(compileExpression());
 		writeSymbol(')');
 		writeSymbol('{');
-		ifStatement.trueClause = compileStatements();
+		ifStatement.setTrueClause(compileStatements());
 		writeSymbol('}');
 		try {
 			writeKeyword(Keyword.ELSE);
 			writeSymbol('{');
-			ifStatement.falseClause = compileStatements();
+			ifStatement.setFalseClause(compileStatements());
 			writeSymbol('}');
 		} catch (CompilationException e) {
 			processNext();
@@ -386,15 +383,15 @@ public class CompilationEngine {
 	/**
 	 * Compiles an expression.
 	 */
-	private JackExpressionArtifact compileExpression() throws CompilationException {
-		JackExpressionArtifact expression = new JackExpressionArtifact();
-		expression.left = compileTerm();
+	private JackExpression compileExpression() throws CompilationException {
+		JackExpression expression = new JackExpression(tokenizer.getCurrentLineNumber());
+		expression.setLeft(compileTerm());
 		if (tokenizer.tokenType() == TokenType.SYMBOL && (tokenizer.symbol() != ';' && tokenizer.symbol() != ',')
 				&& tokenizer.symbol() != ')') {
 			char sym = tokenizer.symbol();
 			expression.op = sym;
 			writeSymbol(new char[] { '+', '-', '*', '/', '&', '|', '<', '>', '=' });
-			expression.right = compileTerm();
+			expression.setRight(compileTerm());
 		}
 		return expression;
 	}
@@ -408,15 +405,16 @@ public class CompilationEngine {
 	 * distinguish between the three possibilities. Any other token is not part
 	 * of this of this term and should not be advanced over.
 	 */
-	private JackTermArtifact compileTerm() throws CompilationException {
-		JackTermArtifact term = null;
+	private AbstractJackTerm compileTerm() throws CompilationException {
+		AbstractJackTerm term = null;
+		int line = tokenizer.getCurrentLineNumber();
 		switch (tokenizer.tokenType()) {
 		case INT_CONST:
-			term = new JackIntegerConstant(tokenizer.intVal());
+			term = new JackIntegerConstant(line, tokenizer.intVal());
 			processNext();
 			break;
 		case STRING_CONST:
-			term = new JackStringConstantArifact(tokenizer.stringVal());
+			term = new JackStringConstant(line, tokenizer.stringVal());
 			processNext();
 			break;
 		case SYMBOL:
@@ -425,9 +423,7 @@ public class CompilationEngine {
 			case '-':
 			case '~':
 				writeSymbol(new char[] {'-', '~'});
-				term = new JackUnaryTermArifact();
-				((JackUnaryTermArifact)term).op = sym;
-				((JackUnaryTermArifact)term).term = compileTerm();
+				term = new JackUnaryTerm(line, sym, compileTerm());
 				break;
 			case '(':
 				writeSymbol('(');
@@ -437,7 +433,7 @@ public class CompilationEngine {
 			}
 			break;
 		case KEYWORD:
-			term = new JackKeywordTermArtifact(tokenizer.keyword().toString());
+			term = new JackKeywordTerm(line, tokenizer.keyword().toString());
 			writeKeyword(new Keyword[] {Keyword.THIS, Keyword.NULL, Keyword.FALSE, Keyword.TRUE});
 			break;
 		default:
@@ -447,31 +443,31 @@ public class CompilationEngine {
 				sym = tokenizer.symbol();
 				if (sym == '[') {
 					// handle array access
-					term = new JackArrayAccessTerm();
+					term = new JackArrayAccessTerm(line);
 					((JackArrayAccessTerm)term).varname = identifier;
-					((JackArrayAccessTerm)term).expression = compileExpression();
+					((JackArrayAccessTerm)term).setExpression(compileExpression());
 					writeSymbol(']');
 					break;
 				} else if (sym == '(' || sym == '.') {
 					// handle function call
-					term = new JackSubroutineCallTerm();
+					term = new JackSubroutineCallTerm(line);
 					((JackSubroutineCallTerm)term).subroutineName = identifier;
 					tokenizer.advance();
 					if (sym == '(') {
-						((JackSubroutineCallTerm)term).parameters = compileExpressionList();
+						((JackSubroutineCallTerm)term).setParameters(compileExpressionList());
 						writeSymbol(')');
 					} else {
 						((JackSubroutineCallTerm)term).accessor = ((JackSubroutineCallTerm)term).subroutineName;
 						((JackSubroutineCallTerm)term).subroutineName = tokenizer.identifier();
 						writeIdentifier();
 						writeSymbol('(');
-						((JackSubroutineCallTerm)term).parameters = compileExpressionList();
+						((JackSubroutineCallTerm)term).setParameters(compileExpressionList());
 						writeSymbol(')');
 					}
 					break;
 				} else /* if (sym == ',' || sym == '<' || sym == '>') */ {
 					// handle variable
-					term = new JackVariableTerm();
+					term = new JackVariableTerm(line);
 					((JackVariableTerm)term).varname = identifier;
 				}
 			}
@@ -482,8 +478,8 @@ public class CompilationEngine {
 	/**
 	 * Compiles a (possibly empty) comma-separated list of expressions.
 	 */
-	private List<JackExpressionArtifact> compileExpressionList() throws CompilationException {
-		List<JackExpressionArtifact> expressions = new ArrayList<>();
+	private List<JackExpression> compileExpressionList() throws CompilationException {
+		List<JackExpression> expressions = new ArrayList<>();
 		while (!(tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == ')')) {
 			expressions.add(compileExpression());
 			while (tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == ',') {
@@ -494,9 +490,9 @@ public class CompilationEngine {
 		return expressions;
 	}
 
-	public static String compile(InputStream in, OutputStream out) throws CompilationException {
+	public static JackClass compile(InputStream in) throws CompilationException {
 		try {
-			CompilationEngine engine = new CompilationEngine(in, out);
+			CompilationEngine engine = new CompilationEngine(in);
 			return engine.compileClass();
 		} catch (FileNotFoundException e) {
 			System.err.println("Cannot find file: " + e.getMessage());
@@ -506,42 +502,65 @@ public class CompilationEngine {
 		return null;
 	}
 	
+	private static void writeToOutputFile(String outputFilename, String content) throws IOException {
+		File outputFile = new File(outputFilename);
+		outputFile.createNewFile();
+		FileOutputStream outputStream = new FileOutputStream(outputFile);
+		byte[] b = content.getBytes();
+		try {
+			outputStream.write(b, 0, b.length);
+			outputStream.flush();
+		} catch (IOException e) {
+		} finally {
+			outputStream.close();
+		}
+	}
+	
 	public static void main(String[] args) {
 		if (args.length < 1) {
 			System.out.println("Error parsing parameters");
 			System.exit(1);
 		}
 		String fileOrDirectory = args[args.length - 1];
+		boolean debugInfo = false;
+		if (args.length > 1) {
+			for (int i = 0; i < args.length; i++) {
+				if (args[i].equals("--debugInfo")) {
+					debugInfo = true;
+					break;
+				}
+			}
+		}
 		File f = new File(fileOrDirectory);
 		try {
 			if (f.isDirectory()) {
 				for (File file : f.listFiles()) {
-					if (!file.getName().endsWith(".jack")) {
-						continue;
-					}
-					String outputFilename = file.getPath().split("\\.")[0] +".vm";
-					File outputFile = new File(outputFilename);
-					try {
-						outputFile.createNewFile();
-						FileOutputStream outputStream = new FileOutputStream(outputFile);
-						FileInputStream inputStream = new FileInputStream(file);
-						String code = compile(inputStream, outputStream);
-						writeVMCode(code, outputStream);
-					} catch (FileNotFoundException e) {
-						System.err.println("Cannot find file: " + e.getMessage());
-					} catch (IOException e) {
-						System.err.println("Cannot write to file: " + e.getMessage());
+					if (file.getName().endsWith(".jack")) {
+						try {
+							FileInputStream inputStream = new FileInputStream(file);
+							JackClass klass = compile(inputStream);
+							String code = klass.writeVMCode();
+							String outputFilename = file.getPath().split("\\.")[0] +".vm";
+							writeToOutputFile(outputFilename, code);
+						} catch (FileNotFoundException e) {
+							System.err.println("Cannot find file: " + e.getMessage());
+						} catch (IOException e) {
+							System.err.println("Cannot write to file: " + e.getMessage());
+						}
 					}
 				}
 			} else {
 				try {
-					String outputFilename = f.getPath().split("\\.")[0] +".vm";
-					File outputFile = new File(outputFilename);
-					outputFile.createNewFile();
-					FileOutputStream outputStream = new FileOutputStream(outputFile);
-					FileInputStream inputStream = new FileInputStream(f);
-					String code = compile(inputStream, outputStream);
-					writeVMCode(code, outputStream);
+					if (f.getName().endsWith("jack")) {
+						FileInputStream inputStream = new FileInputStream(f);
+						JackClass klass = compile(inputStream);
+						String code = klass.writeVMCode();
+						String outputFilename = f.getPath().split("\\.")[0] +".vm";
+						writeToOutputFile(outputFilename, code);
+						if (debugInfo) {
+							
+						}
+					}
 				} catch (FileNotFoundException e) {
 					System.err.println("Cannot find file: " + e.getMessage());
 				} catch (IOException e) {

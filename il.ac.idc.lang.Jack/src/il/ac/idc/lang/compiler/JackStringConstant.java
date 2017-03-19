@@ -1,16 +1,18 @@
 package il.ac.idc.lang.compiler;
 
-public class JackStringConstantArifact extends JackTermArtifact {
+public class JackStringConstant extends AbstractJackTerm {
 
-	String constant;
+	private String constant;
 
-	public JackStringConstantArifact(String val) {
+	public JackStringConstant(int line, String val) {
+		super(line);
 		constant = val;
 	}
 	
 	@Override
 	public String writeVMCode() {
 		StringBuilder builder = new StringBuilder();
+		builder.append("// " + getName() + "\n");
 		builder.append("call Memory.alloc " + constant.length() + "\n");
 		for (int i = 0; i < constant.length(); i++) {
 			builder.append("push constant " + (short) constant.charAt(i) + "\n"); 
@@ -19,4 +21,8 @@ public class JackStringConstantArifact extends JackTermArtifact {
 		return builder.toString();
 	}
 
+	@Override
+	public String getName() {
+		return "string-constant-" + constant;
+	}
 }

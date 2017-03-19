@@ -1,34 +1,51 @@
 package il.ac.idc.lang.compiler;
 
-public class JackLetStatementArtifact extends JackStatementArtifact {
+public class JackLetStatement extends AbstractJackStatement {
 
+	private static int id = 0;
 	String assignee;
-	JackArrayAccessTerm arrayAccess;
-	JackExpressionArtifact expression;
+	private JackArrayAccessTerm arrayAccess;
+	private JackExpression expression;
 	
-	private JackSubroutineArtifact getSubroutine() {
-		IJackLanguageArtifact sub = getParent();
-		while(!(sub instanceof JackSubroutineArtifact)) {
+	public JackLetStatement(int lineNumber) {
+		super(lineNumber);
+		id++;
+	}
+
+	
+	private AbstractJackSubroutine getSubroutine() {
+		AbstractJackObject sub = getParent();
+		while(!(sub instanceof AbstractJackSubroutine)) {
 			sub = sub.getParent();
 		}
-		return (JackSubroutineArtifact) sub;
+		return (AbstractJackSubroutine) sub;
 	}
 	
-	private JackClassArtifact getKlass() {
-		IJackLanguageArtifact klass = getParent();
-		while(!(klass instanceof JackClassArtifact)) {
+	void setExpression(JackExpression expression) {
+		expression.parent = this;
+		this.expression = expression;
+	}
+	
+	void setArrayAccess(JackArrayAccessTerm arrayAccess) {
+		arrayAccess.parent = this;
+		this.arrayAccess = arrayAccess;
+	}
+	
+	private JackClass getKlass() {
+		AbstractJackObject klass = getParent();
+		while(!(klass instanceof JackClass)) {
 			klass = klass.getParent();
 		}
-		return (JackClassArtifact) klass;
+		return (JackClass) klass;
 	}
 	
 	@Override
 	public String writeVMCode() {
 		StringBuilder builder = new StringBuilder();
-		expression.parent = this;
+		builder.append("// " + getName() + "\n");
 		builder.append(expression.writeVMCode());
 		if (assignee != null) {
-			JackSubroutineArtifact sub = getSubroutine();
+			AbstractJackSubroutine sub = getSubroutine();
 			// local
 			boolean found = false;
 			for (int i = 0; i < sub.locals.size(); i++) {
@@ -48,7 +65,7 @@ public class JackLetStatementArtifact extends JackStatementArtifact {
 					}
 				}
 			}
-			JackClassArtifact klass = getKlass();
+			JackClass klass = getKlass();
 			// field
 			if (!found) {
 				for (int i = 0; i < klass.instanceVariables.size(); i++) {
@@ -71,6 +88,11 @@ public class JackLetStatementArtifact extends JackStatementArtifact {
 			// TODO 
 		}
 		return builder.toString();
+	}
+
+	@Override
+	public String getName() {
+		return getClassName() + "." + getSubroutineName() + ":statement-let-" + id;
 	}
 
 }

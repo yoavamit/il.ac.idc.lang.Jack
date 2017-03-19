@@ -81,6 +81,7 @@ public class Tokenizer {
 	private String currentToken;
 	private Scanner scanner;
 	private String currentLine;
+	private int currentLineNumber;
 	
 	/**
 	 * Opens the input file/stream and gets ready to tokenize it
@@ -89,6 +90,7 @@ public class Tokenizer {
 	public Tokenizer(InputStream stream) throws IOException {
 		scanner = new Scanner(stream);
 		currentToken = null;
+		currentLineNumber = 0;
 	}
 	
 	/**
@@ -100,6 +102,15 @@ public class Tokenizer {
 	}
 	
 	/**
+	 * Returns the current line number in the source code.
+	 * Line numbers are 1 based, and include comments and empty lines
+	 * @return
+	 */
+	public int getCurrentLineNumber() {
+		return currentLineNumber;
+	}
+	
+	/**
 	 * Gets the next token from the input and makes it the current token.
 	 * This method should only be called if hasMoreTokens() is true.
 	 * Initially, there is no current token.
@@ -108,6 +119,7 @@ public class Tokenizer {
 		// skip empty lines and comments
 		while (currentLine == null || currentLine.isEmpty() || currentLine.startsWith("//") || currentLine.startsWith("/*")) {
 			currentLine = scanner.nextLine().trim();
+			currentLineNumber++;
 			skipComments();
 		}
 		// check for keyword
@@ -154,11 +166,13 @@ public class Tokenizer {
 	private void skipComments() {
 		while(currentLine.startsWith("//")) {
 			currentLine = scanner.nextLine().trim();
+			currentLineNumber++;
 		}
 		if (currentLine.startsWith("/*")) {
 			int endBlock = currentLine.indexOf("*/");
 			while(endBlock == -1) {
 				currentLine = scanner.nextLine();
+				currentLineNumber++;
 				endBlock = currentLine.indexOf("*/");
 			}
 			currentLine = currentLine.substring(endBlock + 2);
