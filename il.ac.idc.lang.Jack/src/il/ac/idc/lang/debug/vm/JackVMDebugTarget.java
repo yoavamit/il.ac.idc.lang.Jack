@@ -49,14 +49,15 @@ public class JackVMDebugTarget extends JackVMDebugElement implements IDebugTarge
 						switch(eventDetails[0]) {
 						case "started":
 							fireCreationEvent();
-							IBreakpoint[] breakpoints = DebugPlugin.getDefault().getBreakpointManager().getBreakpoints(IJackVMConstants.JACK_VM_DEBUG_MODEL_ID);
-							for (int i = 0; i < breakpoints.length; i++) {
-								breakpointAdded(breakpoints[i]);
-							}
-//							try {
-//								resume();
-//							} catch (DebugException e) {
+//							IBreakpoint[] breakpoints = DebugPlugin.getDefault().getBreakpointManager().getBreakpoints(IJackVMConstants.JACK_VM_DEBUG_MODEL_ID);
+//							for (int i = 0; i < breakpoints.length; i++) {
+//								breakpointAdded(breakpoints[i]);
 //							}
+							try {
+								sendRequest("set|" + 7);
+								resume();
+							} catch (DebugException e) {
+							}
 							break;
 						case "terminated":
 							terminated();
@@ -81,6 +82,8 @@ public class JackVMDebugTarget extends JackVMDebugElement implements IDebugTarge
 								suspended(DebugEvent.STEP_END);
 								break;
 							case "breakpoint":
+								breakpointHit(Integer.parseInt(eventDetails[2]));
+								suspended(DebugEvent.BREAKPOINT);
 								break;
 							}
 							break;
@@ -92,6 +95,7 @@ public class JackVMDebugTarget extends JackVMDebugElement implements IDebugTarge
 			}
 			return Status.OK_STATUS;
 		}
+
 		
 	}
 	
@@ -157,7 +161,7 @@ public class JackVMDebugTarget extends JackVMDebugElement implements IDebugTarge
 
 	@Override
 	public boolean isSuspended() {
-		return isSuspended;
+		return isSuspended && !isTerminated();
 	}
 
 	@Override
@@ -206,6 +210,21 @@ public class JackVMDebugTarget extends JackVMDebugElement implements IDebugTarge
 		}
 	}
 
+	private void breakpointHit(int lineNumber) {
+		IBreakpoint[] breakpoints = DebugPlugin.getDefault().getBreakpointManager().getBreakpoints(IJackVMConstants.JACK_VM_DEBUG_MODEL_ID);
+		for (IBreakpoint breakpoint : breakpoints) {
+			if (supportsBreakpoint(breakpoint) && breakpoint instanceof ILineBreakpoint) {
+				ILineBreakpoint lineBreakpoint = (ILineBreakpoint) breakpoint;
+				try {
+					if (lineBreakpoint.getLineNumber() == lineNumber) {
+						myThread.setBreakpoints(new IBreakpoint[]{breakpoint});
+					}
+				} catch (CoreException e) {
+				}
+			}
+		}
+	}
+	
 	@Override
 	public boolean canDisconnect() {
 		return false;

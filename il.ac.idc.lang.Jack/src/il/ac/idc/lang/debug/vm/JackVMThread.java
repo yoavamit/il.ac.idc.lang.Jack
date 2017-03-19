@@ -96,6 +96,10 @@ public class JackVMThread extends JackVMDebugElement implements IThread {
 		}
 		return new IBreakpoint[0];
 	}
+	
+	protected void setBreakpoints(IBreakpoint[] breakpoints) {
+		this.breakpoints = breakpoints;
+	}
 
 	@Override
 	public String getName() throws DebugException {

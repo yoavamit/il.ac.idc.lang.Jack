@@ -52,6 +52,7 @@ public class VMEmulator {
 			this.function = function;
 			this.stackPointer = ref;
 			this.args = args;
+			System.out.println("created frame: " + function + " " + ref + " " + args);
 		}
 		
 		/**
@@ -160,6 +161,7 @@ public class VMEmulator {
 	
 	private String parseStack() {
 		String[] frameStrings = new String[frames.size()];
+		System.out.println("Serializing " + frames.size() + " frames");
 		for (int i = 0; i < frameStrings.length; i++) {
 			frameStrings[i] = frames.get(i).toString();
 		}
@@ -214,6 +216,7 @@ public class VMEmulator {
 			sendDebugEvent("resumed|client");
 			break;
 		case "set":
+			System.out.println("setting breakpoint at line:" + Integer.parseInt(command[1]));
 			breakpoints.add(new Integer(command[1]));
 			break;
 		case "stack":
@@ -269,7 +272,8 @@ public class VMEmulator {
 			}
 			if (!isPaused) {
 				if (breakpoints.contains(pc)) {
-					sendDebugEvent("suspended|breakpoint");
+					isPaused = true;
+					sendDebugEvent("suspended|breakpoint|" + pc);
 				} else {
 					processCommand();
 				}
