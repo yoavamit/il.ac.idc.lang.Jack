@@ -5,14 +5,16 @@ import java.util.List;
 
 public class JackIfStatement extends AbstractJackStatement {
 	
-	private static int id = 0;
+	private static int index = 0;
+	private int id;
 	private JackExpression condition;
 	private List<AbstractJackStatement> trueClause = new ArrayList<>();
 	private List<AbstractJackStatement> falseClause = new ArrayList<>();
 	
 	public JackIfStatement(int lineNumber) {
 		super(lineNumber);
-		id++;
+		id = index;
+		index++;
 	}
 
 	void setCondition(JackExpression cond) {

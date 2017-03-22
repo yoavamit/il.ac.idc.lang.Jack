@@ -6,8 +6,7 @@ import java.util.List;
 public class JackClass extends AbstractJackObject {
 
 	private String name;
-	List<JackVariable> classVariables = new ArrayList<>();
-	List<JackVariable> instanceVariables = new ArrayList<>();
+	List<JackClassVariableDecl> classVariables = new ArrayList<>();
 	List<AbstractJackSubroutine> subroutines = new ArrayList<>();
 	
 	public JackClass(int lineNumber, String name) {
@@ -16,16 +15,13 @@ public class JackClass extends AbstractJackObject {
 		parent = this;
 	}
 	
-	void addClassVariable(JackVariable var) {
-		classVariables.add(var);
-		var.parent = this;
+	void addClassVariables(List<JackClassVariableDecl> vars) {
+		for (JackClassVariableDecl decl : vars) {
+			decl.parent = this;
+			classVariables.add(decl);
+		}
 	}
-	
-	void addInstanceVariable(JackVariable var) {
-		instanceVariables.add(var);
-		var.parent = this;
-	}
-	
+		
 	void addSubroutine(AbstractJackSubroutine subroutine) {
 		subroutine.parent = this;
 		subroutines.add(subroutine);
@@ -42,9 +38,15 @@ public class JackClass extends AbstractJackObject {
 			}
 		}
 		if (addDefaultCtor) {
+			int numInstanceVars = 0;
+			for (JackClassVariableDecl decl : classVariables) {
+				if (decl.modifier.getTerminal().equals("field")) {
+					numInstanceVars ++;
+				}
+			}
 			builder.append("// " + getName() + ".new\n");
 			builder.append("function " + name + "." + "new 1\n");
-			builder.append("push constant " + instanceVariables.size() + "\n");
+			builder.append("push constant " + numInstanceVars + "\n");
 			builder.append("call Memory.alloc 1\n");
 			builder.append("return\n");			
 		}

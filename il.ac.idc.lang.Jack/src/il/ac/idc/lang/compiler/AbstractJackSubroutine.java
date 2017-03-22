@@ -7,8 +7,8 @@ public abstract class AbstractJackSubroutine extends AbstractJackObject {
 
 	String returnType;
 	String name;
-	List<JackVariable> arguments = new ArrayList<>();
-	List<JackVariable> locals = new ArrayList<>();
+	List<JackVariableDecl> arguments = new ArrayList<>();
+	List<JackVariableDecl> locals = new ArrayList<>();
 	List<AbstractJackStatement> statements = new ArrayList<>();
 	
 	public AbstractJackSubroutine(int lineNumber, String name) {
@@ -16,17 +16,17 @@ public abstract class AbstractJackSubroutine extends AbstractJackObject {
 		this.name = name;
 	}
 	
-	void setArguments(List<JackVariable> args) {
-		for (JackVariable arg : args) {
+	void setArguments(List<JackVariableDecl> args) {
+		for (JackVariableDecl arg : args) {
 			arg.parent = this;
 			arguments.add(arg);
 		}
 	}
 	
-	void addLocals(List<JackVariable> locals) {
-		for (JackVariable local : locals) {
-			local.parent = this;
-			this.locals.add(local);
+	void addLocals(List<JackVariableDecl> vars) {
+		for (JackVariableDecl decl : vars) {
+			decl.parent = this;
+			locals.add(decl);
 		}
 	}
 	

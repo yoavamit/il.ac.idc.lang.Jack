@@ -2,14 +2,16 @@ package il.ac.idc.lang.compiler;
 
 public class JackLetStatement extends AbstractJackStatement {
 
-	private static int id = 0;
+	private static int index = 0;
+	private int id;
 	String assignee;
 	private JackArrayAccessTerm arrayAccess;
 	private JackExpression expression;
 	
 	public JackLetStatement(int lineNumber) {
 		super(lineNumber);
-		id++;
+		id = index;
+		index++;
 	}
 
 	
@@ -68,24 +70,25 @@ public class JackLetStatement extends AbstractJackStatement {
 			JackClass klass = getKlass();
 			// field
 			if (!found) {
-				for (int i = 0; i < klass.instanceVariables.size(); i++) {
-					if (klass.instanceVariables.get(i).name.equals(assignee)) {
-						builder.append("pop this " + i + "\n");
+				for (int i = 0; i < klass.classVariables.size(); i++) {
+					JackClassVariableDecl decl = klass.classVariables.get(i);
+					if (decl.name.equals(assignee)) {
+						if (decl.modifier.getTerminal().equals("field")) {
+							builder.append("pop this " + i + "\n");
+						} else {
+							builder.append("pop static " + i + "\n");
+						}
 						found = true;
 						break;
 					}
 				}
 			}
-			// static
-			if (!found) {
-				for (int i = 0; i < klass.classVariables.size(); i++) {
-					if (klass.classVariables.get(i).name.equals(assignee)) {
-						builder.append("pop static " + i + "\n"); // TODO handle static variable offset 
-					}
-				}
-			}
 		} else {
-			// TODO 
+			builder.append(arrayAccess.writeVMCode());
+			// the array access object pushes the value stored at the array's given index to the stack
+			// this pop instruction get's rid of that value and then pops the given expression to the array's given index which is stored at memory segment "that 0"
+			builder.append("pop temp 1 // get rid of extra value in the stack\n");
+			builder.append("pop that 0\n");
 		}
 		return builder.toString();
 	}

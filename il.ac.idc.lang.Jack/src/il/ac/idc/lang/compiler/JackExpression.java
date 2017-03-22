@@ -2,14 +2,16 @@ package il.ac.idc.lang.compiler;
 
 public class JackExpression extends AbstractJackTerm {
 
-	private static int id = 0;
+	private static int index = 0;
+	private int id;
 	private AbstractJackTerm left;
 	private AbstractJackTerm right;
 	char op;
 	
 	public JackExpression(int lineNumber) {
 		super(lineNumber);
-		id++;
+		id = index;
+		index++;
 	}
 
 	void setLeft(AbstractJackTerm left) {

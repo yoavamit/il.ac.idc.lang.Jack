@@ -108,7 +108,7 @@ public class CompilationEngine {
 			writeSymbol('{');
 			if (tokenizer.tokenType() == TokenType.KEYWORD) {
 				while (tokenizer.keyword() == Keyword.STATIC || tokenizer.keyword() == Keyword.FIELD) {
-					compileClassVarDecl(klass);
+					klass.addClassVariables(compileClassVarDecl());
 				}
 				while (tokenizer.keyword() == Keyword.FUNCTION || tokenizer.keyword() == Keyword.CONSTRUCTOR
 						|| tokenizer.keyword() == Keyword.METHOD) {
@@ -136,31 +136,25 @@ public class CompilationEngine {
 	/**
 	 * Compiles a static declaration and or a field declaration.
 	 */
-	private void compileClassVarDecl(JackClass klass) throws CompilationException {
-		Keyword modifier = tokenizer.keyword();
+	private List<JackClassVariableDecl> compileClassVarDecl() throws CompilationException {
+		JackVariableModifier modifier = new JackVariableModifier(tokenizer.keyword().toString());
 		int lineNumber = tokenizer.getCurrentLineNumber();
+		List<JackClassVariableDecl> list = new ArrayList<>();
 		writeKeyword(new Keyword[] { Keyword.STATIC, Keyword.FIELD }); // static/field
-		Object type = tokenizer.tokenType() == TokenType.KEYWORD ? tokenizer.keyword() : tokenizer.identifier();
-		String varName = tokenizer.identifier();
-		JackVariable var = new JackVariable(lineNumber, varName, type.toString());
-		if (modifier == Keyword.STATIC) {
-			klass.addClassVariable(var);
-		} else {
-			klass.addInstanceVariable(var);
-		}
+		JackVariableType type = new JackVariableType((tokenizer.tokenType() == TokenType.KEYWORD ? tokenizer.keyword() : tokenizer.identifier()).toString());
+		JackVariableName var = new JackVariableName(tokenizer.identifier());
+		JackClassVariableDecl decl = new JackClassVariableDecl(lineNumber, modifier, type, var);
+		list.add(decl);
 		writeIdentifier();
 		while (tokenizer.symbol() != ';') {
 			writeSymbol(',');
-			varName = tokenizer.identifier();
+			var = new JackVariableName(tokenizer.identifier());
+			decl = new JackClassVariableDecl(lineNumber, modifier, type, var);
 			writeIdentifier();
-			var = new JackVariable(lineNumber, varName, type.toString());
-			if (modifier == Keyword.STATIC) {
-				klass.addClassVariable(var);
-			} else {
-				klass.addInstanceVariable(var);
-			}
+			list.add(decl);
 		}
 		writeSymbol(';');
+		return list;
 	}
 
 	/**
@@ -198,8 +192,7 @@ public class CompilationEngine {
 
 		// write variables
 		while (tokenizer.tokenType() == TokenType.KEYWORD && tokenizer.keyword() == Keyword.VAR) {
-			List<JackVariable> vars = compileVarDecl();
-			subroutine.addLocals(vars);
+			subroutine.addLocals(compileVarDecl());
 		}
 		// write statements
 		List<AbstractJackStatement> statements = compileStatements();
@@ -212,14 +205,14 @@ public class CompilationEngine {
 	 * Compiles a (possibly empty) parameter list, not including the enclosing
 	 * "()".
 	 */
-	private List<JackVariable> compileParametersList() throws CompilationException {
-		List<JackVariable> arguments = new ArrayList<>();
+	private List<JackVariableDecl> compileParametersList() throws CompilationException {
+		List<JackVariableDecl> arguments = new ArrayList<>();
 		int lineNumber = tokenizer.getCurrentLineNumber();
 		while (!(tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == ')')) {
-			Object type = tokenizer.tokenType() == TokenType.KEYWORD ? tokenizer.keyword() : tokenizer.identifier();
+			JackVariableType type = new JackVariableType((tokenizer.tokenType() == TokenType.KEYWORD ? tokenizer.keyword() : tokenizer.identifier()).toString());
 			compileType();
-			String name = tokenizer.identifier();
-			arguments.add(new JackVariable(lineNumber, name, type.toString()));
+			JackVariableName name = new JackVariableName(tokenizer.identifier());
+			arguments.add(new JackVariableDecl(lineNumber, type, name));
 			writeIdentifier();
 			try {
 				writeSymbol(',');
@@ -232,19 +225,21 @@ public class CompilationEngine {
 	/**
 	 * Compiles and var declaration.
 	 */
-	private List<JackVariable> compileVarDecl() throws CompilationException {
-		List<JackVariable> list = new ArrayList<>();
+	private List<JackVariableDecl> compileVarDecl() throws CompilationException {
 		writeKeyword(Keyword.VAR);
 		int lineNumber = tokenizer.getCurrentLineNumber();
-		Object type = tokenizer.tokenType() == TokenType.KEYWORD ? tokenizer.keyword() : tokenizer.identifier();
+		List<JackVariableDecl> list = new ArrayList<>();
+		JackVariableType type = new JackVariableType((tokenizer.tokenType() == TokenType.KEYWORD ? tokenizer.keyword() : tokenizer.identifier()).toString());
 		compileType(); // type
-		String name = tokenizer.identifier();
-		list.add(new JackVariable(lineNumber, name, type.toString()));
+		JackVariableName name = new JackVariableName(tokenizer.identifier());
+		JackVariableDecl decl = new JackVariableDecl(lineNumber, type, name);
 		writeIdentifier(); // varName
+		list.add(decl);
 		while (!(tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == ';')) {
 			writeSymbol(',');
-			name = tokenizer.identifier();
-			list.add(new JackVariable(lineNumber, name, type.toString()));
+			name = new JackVariableName(tokenizer.identifier());
+			decl = new JackVariableDecl(lineNumber, type, name);
+			list.add(decl);
 			writeIdentifier();
 		}
 		writeSymbol(';');

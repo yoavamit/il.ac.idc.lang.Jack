@@ -2,11 +2,12 @@ package il.ac.idc.lang.compiler;
 
 public class JackConstructor extends AbstractJackSubroutine {
 
-	private static int id = 0;
-	
+	private static int index = 0;
+	private int id;
 	public JackConstructor(int line, String name) {
 		super(line, name);
-		id++;
+		id = index;
+		index++;
 	}
 
 	@Override

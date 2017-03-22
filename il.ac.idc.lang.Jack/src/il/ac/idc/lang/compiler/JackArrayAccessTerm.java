@@ -2,13 +2,15 @@ package il.ac.idc.lang.compiler;
 
 public class JackArrayAccessTerm extends AbstractJackTerm {
 
-	private static int id = 0;
+	private static int index = 0;
+	private int id;
 	private JackExpression expression;
 	String varname;
 	
 	public JackArrayAccessTerm(int lineNumber) {
 		super(lineNumber);
-		id++;
+		id = index;
+		index++;
 	}
 
 	void setExpression(JackExpression exp) {
@@ -40,7 +42,7 @@ public class JackArrayAccessTerm extends AbstractJackTerm {
 		// local
 		boolean found = false;
 		for (int i = 0; i < subroutine.locals.size(); i++) {
-			if (subroutine.locals.get(i).name.equals(varname)) {
+			if (subroutine.locals.get(i).name.getTerminal().equals(varname)) {
 				builder.append("push local " + i + "\n");
 				found = true;
 				break;
@@ -56,22 +58,17 @@ public class JackArrayAccessTerm extends AbstractJackTerm {
 				}
 			}
 		}
-		// field
+		// class var
 		JackClass klass = getKlass();
 		if (!found) {
-			for (int i = 0; i <klass.instanceVariables.size(); i++) {
-				if (klass.instanceVariables.get(i).name.equals(varname)) {
-					builder.append("push this " + i + "\n");
-					found = true;
-					break;
-				}
-			}
-		}
-		// static
-		if (!found) {
-			for (int i = 0; i < klass.classVariables.size(); i++) {
-				if (klass.classVariables.get(i).name.equals(varname)) {
-					builder.append("push static " + i + "\n"); // TODO handle static offset
+			for (int i = 0; i <klass.classVariables.size(); i++) {
+				JackClassVariableDecl decl = klass.classVariables.get(i);
+				if (decl.name.getTerminal().equals(varname)) {
+					if (decl.modifier.getTerminal().equals("field")) {
+						builder.append("push this " + i + "\n");
+					} else {
+						builder.append("push static " + i + "\n");
+					}
 					found = true;
 					break;
 				}

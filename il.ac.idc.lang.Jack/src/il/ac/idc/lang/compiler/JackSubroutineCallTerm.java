@@ -5,14 +5,16 @@ import java.util.List;
 
 public class JackSubroutineCallTerm extends AbstractJackTerm {
 
-	private static int id = 0;
+	private static int index = 0;
+	private int id;
 	private List<JackExpression> parameters = new ArrayList<>();
 	String accessor;
 	String subroutineName;
 	
 	public JackSubroutineCallTerm(int lineNumber) {
 		super(lineNumber);
-		id++;
+		id = index;
+		index++;
 	}
 	
 	void setParameters(List<JackExpression> params) {
@@ -70,7 +72,7 @@ public class JackSubroutineCallTerm extends AbstractJackTerm {
 			boolean found = false;
 			for (int i = 0; i < subroutine.locals.size(); i++) {
 				if (subroutine.locals.get(i).name.equals(accessor)) {
-					className = subroutine.locals.get(i).type;
+					className = subroutine.locals.get(i).type.getTerminal();
 					builder.append("push local " + i + "\n");
 					found = true;
 					break;
@@ -80,32 +82,29 @@ public class JackSubroutineCallTerm extends AbstractJackTerm {
 			if (!found) {
 				for (int i = 0; i < subroutine.arguments.size(); i++) {
 					if (subroutine.arguments.get(i).name.equals(accessor)) {
-						className = subroutine.arguments.get(i).type;
+						className = subroutine.arguments.get(i).type.getTerminal();
 						builder.append("push argument " + i + "\n");
 						found = true;
 						break;
 					}
 				}
 			}
-			//static
+			// class
 			if (!found) {
 				for (int i = 0; i < klass.classVariables.size(); i++) {
-					if (klass.classVariables.get(i).name.equals(accessor)) {
-						builder.append("push static " + i + "\n"); // TODO handle class static var offset
-						className = klass.classVariables.get(i).type;
+					JackClassVariableDecl decl = klass.classVariables.get(i);
+					if (decl.name.equals(accessor)) {
+						if (decl.modifier.getTerminal().equals("field")) {
+							builder.append("push pointer 0\n");
+							builder.append("push constant " + i + "\n");
+							builder.append("add\n");
+							className = decl.type.getTerminal();
+						} else {
+							builder.append("push static " + i + "\n"); // TODO handle class static var offset
+							className = decl.type.getTerminal();
+						}
 						found = true;
 						break;
-					}
-				}
-			}
-			//fiend
-			if (!found) {
-				for (int i = 0; i < klass.instanceVariables.size(); i++) {
-					if (klass.instanceVariables.get(i).name.equals(accessor)) {
-						builder.append("push pointer 0\n");
-						builder.append("push constant " + i + "\n");
-						builder.append("add\n");
-						className = klass.instanceVariables.get(i).type;
 					}
 				}
 			}

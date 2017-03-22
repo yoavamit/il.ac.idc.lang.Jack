@@ -5,11 +5,13 @@ import java.util.List;
 
 public class JackWhileStatement extends AbstractJackStatement {
 	
-	private static int id = 0; 
+	private static int index = 0;
+	private int id;
 	
 	public JackWhileStatement(int lineNumber) {
 		super(lineNumber);
-		id++;
+		id = index;
+		index++;
 	}
 
 	private JackExpression condition;

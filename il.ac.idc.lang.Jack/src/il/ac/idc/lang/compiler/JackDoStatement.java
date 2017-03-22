@@ -2,14 +2,16 @@ package il.ac.idc.lang.compiler;
 
 public class JackDoStatement extends AbstractJackStatement {
 
-	private static int id = 0;
+	private static int index = 0;
+	private int id;
 	private JackSubroutineCallTerm call;
 	
 	public JackDoStatement(int lineNumber, JackSubroutineCallTerm call) {
 		super(lineNumber);
 		call.parent = this;
 		this.call = call;
-		id++;
+		id = index;
+		index++;
 	}
 
 	@Override

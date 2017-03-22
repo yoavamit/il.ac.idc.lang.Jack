@@ -2,7 +2,8 @@ package il.ac.idc.lang.compiler;
 
 public class JackUnaryTerm extends AbstractJackTerm {
 
-	private static int id = 0;
+	private static int index = 0;
+	private int id;
 	private char op;
 	private AbstractJackTerm term;
 
@@ -11,7 +12,8 @@ public class JackUnaryTerm extends AbstractJackTerm {
 		term.parent = this;
 		this.term = term;
 		this.op = op;
-		id++;
+		id = index;
+		index++;
 	}
 	
 	@Override

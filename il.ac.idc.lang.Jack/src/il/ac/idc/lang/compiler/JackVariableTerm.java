@@ -2,11 +2,13 @@ package il.ac.idc.lang.compiler;
 
 public class JackVariableTerm extends AbstractJackTerm {
 
-	private static int id = 0;
+	private static int index = 0;
+	private int id;
 	
 	public JackVariableTerm(int lineNumber) {
 		super(lineNumber);
-		id++;
+		id = index;
+		index++;
 	}
 
 	String varname;
@@ -45,15 +47,14 @@ public class JackVariableTerm extends AbstractJackTerm {
 		}
 		JackClass klass = getKlass();
 		// field
-		for (int i = 0; i < klass.instanceVariables.size(); i++) {
-			if (klass.instanceVariables.get(i).name.equals(varname)) {
-				code += "push this " + i + "\n";
-			}
-		}
-		// static
 		for (int i = 0; i < klass.classVariables.size(); i++) {
-			if (klass.classVariables.get(i).name.equals(varname)) {
-				code += "push static " + i + "\n";
+			JackClassVariableDecl decl = klass.classVariables.get(i);
+			if (decl.name.getTerminal().equals(varname)) {
+				if (decl.modifier.getTerminal().equals("field")) {
+					code += "push this " + i + "\n";
+				} else {
+					code += "push static " + i + "\n";
+				}
 			}
 		}
 		return code;

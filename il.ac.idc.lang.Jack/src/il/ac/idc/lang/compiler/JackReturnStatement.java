@@ -2,12 +2,14 @@ package il.ac.idc.lang.compiler;
 
 public class JackReturnStatement extends AbstractJackStatement {
 	
-	private static int id = 0;
+	private static int index = 0;
+	private int id;
 	private JackExpression expression;
 	
 	public JackReturnStatement(int lineNumber) {
 		super(lineNumber);
-		id++;
+		id = index;
+		index++;
 	}
 	
 	void setExpression(JackExpression exp) {
