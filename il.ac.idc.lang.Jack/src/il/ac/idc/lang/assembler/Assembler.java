@@ -1,14 +1,15 @@
 package il.ac.idc.lang.assembler;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.xtext.util.StringInputStream;
-
 import il.ac.idc.lang.assembler.Parser.CommandType;
-import il.ac.idc.lang.emulator.CPUEmulator;
 
 public class Assembler {
 
@@ -73,60 +74,47 @@ public class Assembler {
 	}
 
 	public static void main(String[] args) {
-		String program = "@256\n"
-				+ "D=A\n"
-				+ "@SP\n"
-				+ "M=D\n"
-				+ "// push constant 7\n" 
-				+ "@7\n" 
-				+ "D=A\n" 
-				+ "@SP\n" 
-				+ "A=M\n" 
-				+ "M=D\n" 
-				+ "@SP\n" 
-				+ "M=M+1\n"
-				+ "// push constant 8\n" 
-				+ "@8\n" 
-				+ "D=A\n" 
-				+ "@SP\n" 
-				+ "A=M\n" 
-				+ "M=D\n" 
-				+ "@SP\n" 
-				+ "M=M+1\n" 
-				+ "// add\n" 
-				+ "@SP\n"
-				+ "M=M-1\n" 
-				+ "A=M\n" 
-				+ "D=M\n" 
-				+ "M=0\n" 
-				+ "@R13\n" 
-				+ "M=D\n" 
-				+ "@SP\n" 
-				+ "M=M-1\n" 
-				+ "A=M\n" 
-				+ "D=M\n" 
-				+ "@R13\n" 
-				+ "D=D+M\n"
-				+ "@SP\n" 
-				+ "A=M\n" 
-				+ "M=D\n"
-				+ "EOP";
-		try {
-			Assembler asm = new Assembler(new StringInputStream(program));
-			Integer[] instructions = asm.assemble();
-			for (Integer instruction : instructions) {
-				String inst = Integer.toBinaryString(instruction);
-				if (inst.length() < 16) {
-					for (int i = inst.length(); i < 16; i++) {
-						inst = "0" + inst;
-					}
-				}
-				System.out.println(inst);
+		String filename = null;
+		String format = "strings";
+		for (int i = 0; i < args.length; i++) {
+			if (args[i].equals("--format")) {
+				format = args[i+1];
 			}
-			CPUEmulator emulator = new CPUEmulator();
-			emulator.loadProgram(instructions);
-			emulator.run();
-			System.out.println(emulator.getRegM());
+		}
+		filename = args[args.length - 1];
+		
+		try {
+			File file = new File(filename);
+			Assembler asm = new Assembler(new FileInputStream(file));
+			FileOutputStream output = null;
+			if (file.isDirectory()) {
+				output = new FileOutputStream(new File(file.getPath() + "a.hack"));
+			} else {
+				output = new FileOutputStream(new File(file.getParentFile().getPath() + File.separator + "a.hack"));
+			}
+			Integer[] instructions = asm.assemble();
+			switch (format) {
+			case "binary":
+				for (Integer inst : instructions) {
+					output.write(inst);
+				}
+				break;
+			case "strings":
+				PrintWriter out = new PrintWriter(output);
+				for (Integer instruction : instructions) {
+					String inst = Integer.toBinaryString(instruction);
+					if (inst.length() < 16) {
+						for (int i = inst.length(); i < 16; i++) {
+							inst = "0" + inst;
+						}
+					}
+					out.println(inst);
+				}
+				out.flush();
+				out.close();
+				break;
+			}
+			output.close();
 		} catch (IOException e) {
 			System.out.println("Coudln't read program...");
 		}
