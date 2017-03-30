@@ -30,7 +30,7 @@ public class JackClass extends AbstractJackObject {
 	@Override
 	public String writeVMCode() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("// " + getName() + "\n");
+		builder.append("// sourceLine:" + lineNumber + "\n");
 		boolean addDefaultCtor = true;
 		for (AbstractJackSubroutine sub : subroutines) {
 			if (sub instanceof JackConstructor) {
@@ -44,7 +44,6 @@ public class JackClass extends AbstractJackObject {
 					numInstanceVars ++;
 				}
 			}
-			builder.append("// " + getName() + ".new\n");
 			builder.append("function " + name + "." + "new 1\n");
 			builder.append("push constant " + numInstanceVars + "\n");
 			builder.append("call Memory.alloc 1\n");
@@ -57,7 +56,7 @@ public class JackClass extends AbstractJackObject {
 	}
 
 	@Override
-	public String getName() {
+	public String getId() {
 		return name;
 	}
 }

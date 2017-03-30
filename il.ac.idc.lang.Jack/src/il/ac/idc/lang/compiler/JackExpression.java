@@ -27,7 +27,9 @@ public class JackExpression extends AbstractJackTerm {
 	@Override
 	public String writeVMCode() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("// " + getName() + "\n");
+		if (lineNumber != parent.lineNumber) {
+			builder.append("// sourceLine:" + lineNumber + "\n");
+		}
 		builder.append(left.writeVMCode());
 		if (right != null) {
 			builder.append(right.writeVMCode());
@@ -64,7 +66,7 @@ public class JackExpression extends AbstractJackTerm {
 	}
 
 	@Override
-	public String getName() {
+	public String getId() {
 		return getClassName() + "." + getSubroutineName() +":expression-" + id;
 	}
 }

@@ -19,17 +19,20 @@ public class JackReturnStatement extends AbstractJackStatement {
 	
 	@Override
 	public String writeVMCode() {
-		String returnString = "// " + getName() + "\n";
+		String returnString = "";
+		if (lineNumber != parent.lineNumber) {
+			returnString = "// sourceLine:" + lineNumber + "\n";
+		}
 		if (expression != null) {
-			returnString = expression.writeVMCode();
+			returnString += expression.writeVMCode();
 		} else {
-			returnString = "push constant 0\n";
+			returnString += "push constant 0\n";
 		}
 		return returnString + "return\n";
 	}
 
 	@Override
-	public String getName() {
+	public String getId() {
 		return getClassName() + "." + getSubroutineName() + ":statement-return-" + id;
 	}
 

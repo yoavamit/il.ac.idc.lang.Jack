@@ -32,16 +32,19 @@ public class JackVariableTerm extends AbstractJackTerm {
 	@Override
 	public String writeVMCode() {
 		AbstractJackSubroutine sub = getSubroutine();
-		String code = "// " + getName() + "\n";
+		String code = "";
+		if (lineNumber != parent.lineNumber) {
+			code = "// sourceLine:" + lineNumber + "\n";
+		}
 		// local
 		for (int i = 0; i < sub.locals.size(); i++) {
-			if (sub.locals.get(i).name.equals(varname)) {
+			if (sub.locals.get(i).name.terminal.equals(varname)) {
 				code += "push local " + i + "\n";
 			}
 		}
 		// argument
 		for (int i = 0; i < sub.arguments.size(); i++) {
-			if (sub.arguments.get(i).name.equals(varname)) {
+			if (sub.arguments.get(i).name.terminal.equals(varname)) {
 				code += "push argument " + i + "\n";
 			}
 		}
@@ -61,7 +64,7 @@ public class JackVariableTerm extends AbstractJackTerm {
 	}
 
 	@Override
-	public String getName() {
+	public String getId() {
 		return getClassName() + "." + getSubroutineName() + ":term-var-" + varname +"-" + id;
 	}
 }

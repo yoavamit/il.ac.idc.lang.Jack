@@ -7,7 +7,7 @@ public class JackMethod extends AbstractJackSubroutine {
 	}
 
 	@Override
-	public String getName() {
+	public String getId() {
 		return getClassName() + "." + name;
 	}
 

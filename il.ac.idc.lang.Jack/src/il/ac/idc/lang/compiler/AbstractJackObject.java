@@ -19,7 +19,7 @@ public abstract class AbstractJackObject {
 			sub = sub.getParent();
 		}
 		if (sub instanceof AbstractJackSubroutine) {
-			return sub.getName();
+			return sub.getId();
 		} else {
 			return null;
 		}
@@ -31,12 +31,12 @@ public abstract class AbstractJackObject {
 			klass = klass.parent;
 		}
 		if (klass instanceof JackClass) {
-			return klass.getName();
+			return klass.getId();
 		} else {
 			return null;
 		}
 	}
 	
-	public abstract String getName();
+	public abstract String getId();
 	public abstract String writeVMCode();
 }

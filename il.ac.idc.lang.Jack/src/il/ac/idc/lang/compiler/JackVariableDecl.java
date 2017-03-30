@@ -16,7 +16,7 @@ public class JackVariableDecl extends AbstractJackObject {
 	}
 
 	@Override
-	public String getName() {
+	public String getId() {
 		return getClassName() + "." + getSubroutineName() + ":var-decl-" + id;
 	}
 

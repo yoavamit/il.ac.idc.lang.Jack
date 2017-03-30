@@ -11,7 +11,7 @@ public class JackConstructor extends AbstractJackSubroutine {
 	}
 
 	@Override
-	public String getName() {
+	public String getId() {
 		return getClassName() + ".new-" + id;
 	}
 

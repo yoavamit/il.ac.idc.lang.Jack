@@ -11,9 +11,11 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Set;
 
 public class VMEmulator {
 
@@ -52,7 +54,6 @@ public class VMEmulator {
 			this.function = function;
 			this.stackPointer = ref;
 			this.args = args;
-			System.out.println("created frame: " + function + " " + ref + " " + args);
 		}
 		
 		/**
@@ -93,6 +94,7 @@ public class VMEmulator {
 	private List<String> program = new ArrayList<>();
 	private List<Integer> breakpoints = new ArrayList<>();
 	private List<FrameReference> frames = new ArrayList<>();
+	private Map<Integer, Set<Integer>> sourceCodeLineMap = new HashMap<>();
 	private int pc;
 
 	private boolean isPaused = false;
@@ -128,9 +130,15 @@ public class VMEmulator {
 	private void readFile(File file) throws IOException {
 		InputStream stream = new FileInputStream(file);
 		Scanner scanner = new Scanner(stream);
+		int sourceCodeLine = 0;
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
 			line = line.trim();
+			if (line.startsWith("// sourceLine:")) {
+				int colons = line.indexOf(":");
+				sourceCodeLine = Integer.parseInt(line.substring(colons + 1));
+				continue;
+			}
 			if (line.isEmpty() || line.startsWith("//")) {
 				continue;
 			}
@@ -139,9 +147,17 @@ public class VMEmulator {
 			} else if (line.startsWith("function")) {
 				String[] func = line.split(" ");
 				functions.put(func[1], Integer.parseInt(func[2]));
+				if (!sourceCodeLineMap.containsKey(sourceCodeLine)) {
+					sourceCodeLineMap.put(sourceCodeLine, new HashSet<Integer>());
+				}
+				sourceCodeLineMap.get(sourceCodeLine).add(commandAddress);
 				labels.put(func[1], commandAddress++);
 				program.add(line);
 			} else {
+				if (!sourceCodeLineMap.containsKey(sourceCodeLine)) {
+					sourceCodeLineMap.put(sourceCodeLine, new HashSet<Integer>());
+				}
+				sourceCodeLineMap.get(sourceCodeLine).add(commandAddress);
 				program.add(line);
 				commandAddress++;
 			}
@@ -156,12 +172,10 @@ public class VMEmulator {
 		PrintWriter out = new PrintWriter(eventClient.getOutputStream());
 		out.println(event);
 		out.flush();
-		System.out.println("Sent event: " + event);
 	}
 	
 	private String parseStack() {
 		String[] frameStrings = new String[frames.size()];
-		System.out.println("Serializing " + frames.size() + " frames");
 		for (int i = 0; i < frameStrings.length; i++) {
 			frameStrings[i] = frames.get(i).toString();
 		}
@@ -201,7 +215,11 @@ public class VMEmulator {
 		String response = "ok";
 		switch(command[0]) {
 		case "clear":
-			breakpoints.remove(new Integer(command[1]));
+			Set<Integer> toRemove = sourceCodeLineMap.get(new Integer(command[1]));
+			if (toRemove != null) {
+				breakpoints.addAll(toRemove);
+			}
+			breakpoints.removeAll(toRemove);
 			break;
 		case "data":
 			short[] heap = new short[freeHeapPointer - HEAP_OFFSET];
@@ -216,8 +234,10 @@ public class VMEmulator {
 			sendDebugEvent("resumed|client");
 			break;
 		case "set":
-			System.out.println("setting breakpoint at line:" + Integer.parseInt(command[1]));
-			breakpoints.add(new Integer(command[1]));
+			Set<Integer> toAdd = sourceCodeLineMap.get(new Integer(command[1]));
+			if (toAdd != null) {
+				breakpoints.addAll(toAdd);
+			}
 			break;
 		case "stack":
 //			short[] stack = new short[stackPointer - STACK_OFFSET];

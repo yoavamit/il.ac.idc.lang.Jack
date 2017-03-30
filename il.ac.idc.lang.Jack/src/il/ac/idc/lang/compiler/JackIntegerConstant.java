@@ -11,11 +11,16 @@ public class JackIntegerConstant extends AbstractJackTerm {
 	
 	@Override
 	public String writeVMCode() {
-		return "// " + getName() + "\npush constant " + constant +"\n";
+		String code = "";
+		if (lineNumber != parent.lineNumber) {
+			code = "// sourceLine:" + lineNumber + "\n";
+		}
+		code += "push constant " + constant + "\n";
+		return code;
 	}
 
 	@Override
-	public String getName() {
+	public String getId() {
 		return "integer-constant-" + constant;
 	}
 }

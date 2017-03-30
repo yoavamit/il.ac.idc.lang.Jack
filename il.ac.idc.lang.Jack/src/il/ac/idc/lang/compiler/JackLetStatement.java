@@ -44,14 +44,16 @@ public class JackLetStatement extends AbstractJackStatement {
 	@Override
 	public String writeVMCode() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("// " + getName() + "\n");
+		if (lineNumber != parent.lineNumber) {
+			builder.append("// sourceLine:" + lineNumber + "\n");
+		}
 		builder.append(expression.writeVMCode());
 		if (assignee != null) {
 			AbstractJackSubroutine sub = getSubroutine();
 			// local
 			boolean found = false;
 			for (int i = 0; i < sub.locals.size(); i++) {
-				if (sub.locals.get(i).name.equals(assignee)) {
+				if (sub.locals.get(i).name.terminal.equals(assignee)) {
 					builder.append("pop local " + i + "\n");
 					found = true;
 					break;
@@ -60,7 +62,7 @@ public class JackLetStatement extends AbstractJackStatement {
 			// argument
 			if (!found) {
 				for (int i = 0; i < sub.arguments.size(); i++) {
-					if (sub.arguments.get(i).name.equals(assignee)) {
+					if (sub.arguments.get(i).name.terminal.equals(assignee)) {
 						builder.append("pop argument " + i + "\n");
 						found = true;
 						break;
@@ -72,7 +74,7 @@ public class JackLetStatement extends AbstractJackStatement {
 			if (!found) {
 				for (int i = 0; i < klass.classVariables.size(); i++) {
 					JackClassVariableDecl decl = klass.classVariables.get(i);
-					if (decl.name.equals(assignee)) {
+					if (decl.name.terminal.equals(assignee)) {
 						if (decl.modifier.getTerminal().equals("field")) {
 							builder.append("pop this " + i + "\n");
 						} else {
@@ -94,7 +96,7 @@ public class JackLetStatement extends AbstractJackStatement {
 	}
 
 	@Override
-	public String getName() {
+	public String getId() {
 		return getClassName() + "." + getSubroutineName() + ":statement-let-" + id;
 	}
 

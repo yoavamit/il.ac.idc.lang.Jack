@@ -51,10 +51,11 @@ public class JackSubroutineCallTerm extends AbstractJackTerm {
 		String className = "";
 		JackClass klass = getKlass();
 		boolean isStatic = false;
-		
-		builder.append("// " + getName() + "\n");
+		if (lineNumber != parent.lineNumber) {
+			builder.append("// sourceLine:" + lineNumber + "\n");
+		}
 		if (accessor == null) {
-			className = klass.getName();
+			className = klass.getId();
 			for (AbstractJackSubroutine subroutine : klass.subroutines) {
 				if (subroutine.name.equals(subroutineName) && subroutine instanceof JackFunction) {
 					isStatic = true;
@@ -71,7 +72,7 @@ public class JackSubroutineCallTerm extends AbstractJackTerm {
 			//local
 			boolean found = false;
 			for (int i = 0; i < subroutine.locals.size(); i++) {
-				if (subroutine.locals.get(i).name.equals(accessor)) {
+				if (subroutine.locals.get(i).name.terminal.equals(accessor)) {
 					className = subroutine.locals.get(i).type.getTerminal();
 					builder.append("push local " + i + "\n");
 					found = true;
@@ -81,7 +82,7 @@ public class JackSubroutineCallTerm extends AbstractJackTerm {
 			//argument
 			if (!found) {
 				for (int i = 0; i < subroutine.arguments.size(); i++) {
-					if (subroutine.arguments.get(i).name.equals(accessor)) {
+					if (subroutine.arguments.get(i).name.terminal.equals(accessor)) {
 						className = subroutine.arguments.get(i).type.getTerminal();
 						builder.append("push argument " + i + "\n");
 						found = true;
@@ -93,7 +94,7 @@ public class JackSubroutineCallTerm extends AbstractJackTerm {
 			if (!found) {
 				for (int i = 0; i < klass.classVariables.size(); i++) {
 					JackClassVariableDecl decl = klass.classVariables.get(i);
-					if (decl.name.equals(accessor)) {
+					if (decl.name.terminal.equals(accessor)) {
 						if (decl.modifier.getTerminal().equals("field")) {
 							builder.append("push pointer 0\n");
 							builder.append("push constant " + i + "\n");
@@ -125,7 +126,7 @@ public class JackSubroutineCallTerm extends AbstractJackTerm {
 	}
 
 	@Override
-	public String getName() {
+	public String getId() {
 		return getClassName() + "." + getSubroutineName() + ":call-" + subroutineName + "-" + id;
 	}
 }

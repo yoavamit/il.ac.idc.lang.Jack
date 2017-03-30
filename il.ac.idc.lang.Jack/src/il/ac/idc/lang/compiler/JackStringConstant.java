@@ -12,7 +12,9 @@ public class JackStringConstant extends AbstractJackTerm {
 	@Override
 	public String writeVMCode() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("// " + getName() + "\n");
+		if (lineNumber != parent.lineNumber) {
+			builder.append("// sourceLine:" + lineNumber + "\n");
+		}
 		builder.append("call Memory.alloc " + constant.length() + "\n");
 		for (int i = 0; i < constant.length(); i++) {
 			builder.append("push constant " + (short) constant.charAt(i) + "\n"); 
@@ -22,7 +24,7 @@ public class JackStringConstant extends AbstractJackTerm {
 	}
 
 	@Override
-	public String getName() {
+	public String getId() {
 		return "string-constant-" + constant;
 	}
 }

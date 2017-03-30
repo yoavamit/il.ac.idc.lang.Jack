@@ -43,8 +43,8 @@ public class JackVMDebugTarget extends JackVMDebugElement implements IDebugTarge
 			while(!isTerminated() && event != null) {
 				try {
 					event = new BufferedReader(new InputStreamReader(eventSocket.getInputStream())).readLine();
-					System.out.println("Got event from client: " + event);
 					if (event != null) {
+						System.out.println("Got event from client: " + event);
 						String[] eventDetails = event.split("\\|");
 						switch(eventDetails[0]) {
 						case "started":
@@ -54,7 +54,7 @@ public class JackVMDebugTarget extends JackVMDebugElement implements IDebugTarge
 //								breakpointAdded(breakpoints[i]);
 //							}
 							try {
-								sendRequest("set|" + 7);
+								sendRequest("set|" + 29);
 								resume();
 							} catch (DebugException e) {
 							}

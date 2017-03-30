@@ -16,11 +16,16 @@ public class JackDoStatement extends AbstractJackStatement {
 
 	@Override
 	public String writeVMCode() {
-		return "// "+ getName() + "\n" + call.writeVMCode();
+		String code = "";
+		if (lineNumber != parent.lineNumber) {
+			code = "// sourceLine:"+ lineNumber + "\n"; 
+		}
+		code += call.writeVMCode();
+		return code;
 	}
 
 	@Override
-	public String getName() {
+	public String getId() {
 		return getClassName() + "." + getSubroutineName() + ":statement-do-" + id;
 	}
 }

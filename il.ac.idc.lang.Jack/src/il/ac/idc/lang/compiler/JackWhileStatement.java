@@ -32,9 +32,11 @@ public class JackWhileStatement extends AbstractJackStatement {
 	@Override
 	public String writeVMCode() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("// " + getName() + "\n");
-		String conditionLabel = getClassName() + "-" + getSubroutineName() + "-while-condition-" + id;
-		String endWhileLabel = getClassName() + "-" + getSubroutineName() + "-while-end-" + id;
+		if (lineNumber != parent.lineNumber) {
+			builder.append("// sourceLine:" + lineNumber + "\n");
+		}
+		String conditionLabel = getSubroutineName() + "-while-condition-" + id;
+		String endWhileLabel = getSubroutineName() + "-while-end-" + id;
 		
 		builder.append("label " + conditionLabel + "\n");
 		builder.append(condition.writeVMCode());
@@ -48,7 +50,7 @@ public class JackWhileStatement extends AbstractJackStatement {
 	}
 
 	@Override
-	public String getName() {
+	public String getId() {
 		return getClassName() + "." + getSubroutineName() + ":statement-while-" + id;
 	}
 	

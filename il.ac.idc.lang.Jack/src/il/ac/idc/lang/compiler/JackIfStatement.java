@@ -39,9 +39,11 @@ public class JackIfStatement extends AbstractJackStatement {
 	@Override
 	public String writeVMCode() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("// " + getName() + "\n");
-		String elseLabel =   getClassName() + "-" + getSubroutineName() + "-branch-else-" + id;
-		String endIfLabel = getClassName() +"-" + getSubroutineName() + "-end-if-" + id;
+		if (lineNumber != parent.lineNumber) {
+			builder.append("// sourceLine:" + lineNumber + "\n");
+		}
+		String elseLabel =   getSubroutineName() + "-branch-else-" + id;
+		String endIfLabel = getSubroutineName() + "-end-if-" + id;
 		
 		builder.append(condition.writeVMCode());
 		builder.append("if-goto " + elseLabel + "\n");
@@ -58,7 +60,7 @@ public class JackIfStatement extends AbstractJackStatement {
 	}
 	
 	@Override
-	public String getName() {
+	public String getId() {
 		return getClassName() + "." + getSubroutineName() + ":statement-if-" + id;
 	}
 }

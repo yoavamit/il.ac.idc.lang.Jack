@@ -11,7 +11,10 @@ public class JackKeywordTerm extends AbstractJackTerm {
 	
 	@Override
 	public String writeVMCode() {
-		String code = "// " + getName() + "\n";
+		String code = "";
+		if (lineNumber != parent.lineNumber) {
+			code = "// sourceLine:" + lineNumber + "\n";
+		}
 		switch(keyword) {
 		case "NULL":
 			code += "push constant 0\n";
@@ -30,7 +33,7 @@ public class JackKeywordTerm extends AbstractJackTerm {
 	}
 
 	@Override
-	public String getName() {
+	public String getId() {
 		return "keyword-constant-" + keyword;
 	}
 	

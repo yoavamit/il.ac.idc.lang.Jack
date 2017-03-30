@@ -38,7 +38,9 @@ public class JackArrayAccessTerm extends AbstractJackTerm {
 	public String writeVMCode() {
 		StringBuilder builder = new StringBuilder();
 		AbstractJackSubroutine subroutine = getMethod();
-		builder.append("// " + getName() + "\n");
+		if (lineNumber != parent.lineNumber) {
+			builder.append("// sourceLine:" + lineNumber + "\n");
+		}
 		// local
 		boolean found = false;
 		for (int i = 0; i < subroutine.locals.size(); i++) {
@@ -51,7 +53,7 @@ public class JackArrayAccessTerm extends AbstractJackTerm {
 		// argument
 		if (!found) {
 			for (int i = 0; i < subroutine.arguments.size(); i++) {
-				if (subroutine.arguments.get(i).name.equals(varname)) {
+				if (subroutine.arguments.get(i).name.getTerminal().equals(varname)) {
 					builder.append("push argument " + i + "\n");
 					found = true;
 					break;
@@ -82,7 +84,7 @@ public class JackArrayAccessTerm extends AbstractJackTerm {
 	}
 
 	@Override
-	public String getName() {
+	public String getId() {
 		return getClassName() + "." + getSubroutineName() + ":term-array-access-" + varname + "-" + id;
 	}
 

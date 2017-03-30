@@ -19,7 +19,9 @@ public class JackUnaryTerm extends AbstractJackTerm {
 	@Override
 	public String writeVMCode() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("// " + getName() + "\n");
+		if (lineNumber != parent.lineNumber) {
+			builder.append("// sourceLine:" + lineNumber + "\n");
+		}
 		builder.append(term.writeVMCode());
 		switch(op) {
 		case '-':
@@ -33,7 +35,7 @@ public class JackUnaryTerm extends AbstractJackTerm {
 	}
 
 	@Override
-	public String getName() {
+	public String getId() {
 		return getClassName() + "." + getSubroutineName() + ":unary-term-" + id;
 	}
 
