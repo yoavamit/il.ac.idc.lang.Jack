@@ -1,5 +1,6 @@
 package il.ac.idc.lang.compiler;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -11,6 +12,7 @@ import java.util.List;
 
 import il.ac.idc.lang.compiler.Tokenizer.Keyword;
 import il.ac.idc.lang.compiler.Tokenizer.TokenType;
+import il.ac.idc.lang.hvm.VMTranslator;
 
 public class CompilationEngine {
 
@@ -518,14 +520,18 @@ public class CompilationEngine {
 		}
 		String fileOrDirectory = args[args.length - 1];
 		boolean debugInfo = false;
+		String format = "bytecode";
 		if (args.length > 1) {
 			for (int i = 0; i < args.length; i++) {
 				if (args[i].equals("--debugInfo")) {
 					debugInfo = true;
-					break;
+				}
+				if (args[i].equals("--format")) {
+					format = args[i+1]; 
 				}
 			}
 		}
+		
 		File f = new File(fileOrDirectory);
 		try {
 			if (f.isDirectory()) {
@@ -551,9 +557,17 @@ public class CompilationEngine {
 						JackClass klass = compile(inputStream);
 						String code = klass.writeVMCode();
 						String outputFilename = f.getPath().split("\\.")[0] +".vm";
-						writeToOutputFile(outputFilename, code);
-						if (debugInfo) {
-							
+						switch (format) {
+						case "bytecode":
+							writeToOutputFile(outputFilename, code);
+							if (debugInfo) {
+								// handle this
+							}
+							break;
+						case "binary":
+							VMTranslator translator = new VMTranslator(f.getParent() + File.separator + "a.hack");
+							translator.translateFile(f, new ByteArrayInputStream(code.getBytes()));
+							break;
 						}
 					}
 				} catch (FileNotFoundException e) {

@@ -28,6 +28,7 @@ Import-Package: javax.xml.bind,
  org.eclipse.xtext.xbase.lib
 Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Export-Package: il.ac.idc.lang,
+ il.ac.idc.lang.debug.vm,
  il.ac.idc.lang.emulator,
  il.ac.idc.lang.formatting,
  il.ac.idc.lang.generator,
