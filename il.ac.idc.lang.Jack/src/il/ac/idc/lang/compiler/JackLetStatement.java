@@ -97,7 +97,7 @@ public class JackLetStatement extends AbstractJackStatement {
 
 	@Override
 	public String getId() {
-		return getClassName() + "." + getSubroutineName() + ":statement-let-" + id;
+		return getKlassName() + "." + getSubroutineName() + ":statement-let-" + id;
 	}
 
 }

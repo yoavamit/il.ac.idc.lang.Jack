@@ -139,11 +139,12 @@ public class CompilationEngine {
 	 * Compiles a static declaration and or a field declaration.
 	 */
 	private List<JackClassVariableDecl> compileClassVarDecl() throws CompilationException {
-		JackVariableModifier modifier = new JackVariableModifier(tokenizer.keyword().toString());
+		JackVariableModifier modifier = new JackVariableModifier(tokenizer.keyword().getValue());
 		int lineNumber = tokenizer.getCurrentLineNumber();
 		List<JackClassVariableDecl> list = new ArrayList<>();
 		writeKeyword(new Keyword[] { Keyword.STATIC, Keyword.FIELD }); // static/field
-		JackVariableType type = new JackVariableType((tokenizer.tokenType() == TokenType.KEYWORD ? tokenizer.keyword() : tokenizer.identifier()).toString());
+		JackVariableType type = new JackVariableType((tokenizer.tokenType() == TokenType.KEYWORD ? tokenizer.keyword().getValue() : tokenizer.identifier()).toString());
+		tokenizer.advance();
 		JackVariableName var = new JackVariableName(tokenizer.identifier());
 		JackClassVariableDecl decl = new JackClassVariableDecl(lineNumber, modifier, type, var);
 		list.add(decl);
@@ -211,7 +212,7 @@ public class CompilationEngine {
 		List<JackVariableDecl> arguments = new ArrayList<>();
 		int lineNumber = tokenizer.getCurrentLineNumber();
 		while (!(tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == ')')) {
-			JackVariableType type = new JackVariableType((tokenizer.tokenType() == TokenType.KEYWORD ? tokenizer.keyword() : tokenizer.identifier()).toString());
+			JackVariableType type = new JackVariableType((tokenizer.tokenType() == TokenType.KEYWORD ? tokenizer.keyword().getValue() : tokenizer.identifier()).toString());
 			compileType();
 			JackVariableName name = new JackVariableName(tokenizer.identifier());
 			arguments.add(new JackVariableDecl(lineNumber, type, name));
@@ -231,7 +232,7 @@ public class CompilationEngine {
 		writeKeyword(Keyword.VAR);
 		int lineNumber = tokenizer.getCurrentLineNumber();
 		List<JackVariableDecl> list = new ArrayList<>();
-		JackVariableType type = new JackVariableType((tokenizer.tokenType() == TokenType.KEYWORD ? tokenizer.keyword() : tokenizer.identifier()).toString());
+		JackVariableType type = new JackVariableType((tokenizer.tokenType() == TokenType.KEYWORD ? tokenizer.keyword().getValue() : tokenizer.identifier()).toString());
 		compileType(); // type
 		JackVariableName name = new JackVariableName(tokenizer.identifier());
 		JackVariableDecl decl = new JackVariableDecl(lineNumber, type, name);

@@ -67,6 +67,6 @@ public class JackExpression extends AbstractJackTerm {
 
 	@Override
 	public String getId() {
-		return getClassName() + "." + getSubroutineName() +":expression-" + id;
+		return getKlassName() + "." + getSubroutineName() +":expression-" + id;
 	}
 }

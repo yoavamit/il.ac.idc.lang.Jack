@@ -85,7 +85,7 @@ public class JackArrayAccessTerm extends AbstractJackTerm {
 
 	@Override
 	public String getId() {
-		return getClassName() + "." + getSubroutineName() + ":term-array-access-" + varname + "-" + id;
+		return getKlassName() + "." + getSubroutineName() + ":term-array-access-" + varname + "-" + id;
 	}
 
 }

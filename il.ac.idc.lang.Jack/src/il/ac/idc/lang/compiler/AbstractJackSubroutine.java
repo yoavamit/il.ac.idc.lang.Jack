@@ -40,12 +40,17 @@ public abstract class AbstractJackSubroutine extends AbstractJackObject {
 	@Override
 	public String writeVMCode() {
 		StringBuilder builder = new StringBuilder();
+		// write variable symbol table
+		for (int i = 0; i < arguments.size(); i++) {
+			builder.append("// arg:" + arguments.get(i).getId() + "\n");
+		}
 		if(lineNumber != parent.lineNumber) {
 			builder.append("// sourceLine:" + lineNumber + "\n");
 		}
 		String className = parent.getId();
-		builder.append("function " + className + "." + name + " " + arguments.size() +"\n");
+		builder.append("function " + className + "." + name + " " + locals.size() +"\n");
 		for (int i = 0; i < locals.size(); i++) {
+			builder.append("// var:" + locals.get(i).getId() + "\n");
 			builder.append("push constant 0\n");
 		}
 		for (AbstractJackStatement statement : statements) {

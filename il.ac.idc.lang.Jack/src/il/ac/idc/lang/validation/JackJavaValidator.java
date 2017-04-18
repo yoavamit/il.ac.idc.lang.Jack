@@ -4,6 +4,7 @@
 package il.ac.idc.lang.validation;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import il.ac.idc.lang.jack.*;
 import il.ac.idc.lang.util.JackBuiltinLibraries;
@@ -29,9 +30,11 @@ public class JackJavaValidator extends il.ac.idc.lang.validation.AbstractJackJav
     
     @Check
     public void checkVariableName(ClassVarDecl varDecl) {
-        String varName = varDecl.getVarName();
-        if (Character.isUpperCase(varName.charAt(0))) {
-            warning("Varaible names should start with a lowercase letter", JackPackage.Literals.CLASS_VAR_DECL__VAR_NAME);
+        List<String> varNames = varDecl.getVarName();
+        for (String varName : varNames) {
+        	if (Character.isUpperCase(varName.charAt(0))) {
+        		warning("Varaible names should start with a lowercase letter", JackPackage.Literals.CLASS_VAR_DECL__VAR_NAME);
+        	}
         }
     }
     
@@ -60,9 +63,11 @@ public class JackJavaValidator extends il.ac.idc.lang.validation.AbstractJackJav
         
         ClassDef klass = getClassDef(let);
         for(ClassVarDecl var : klass.getVars()) {
-            if (var.getVarName().equals(varName)) {
-                return;
-            }
+        	for (String name : var.getVarName()) {
+        		if (name.equals(varName)) {
+        			return;
+        		}
+        	}
         }
         error("Varaible " + varName + " wasn't initialized", JackPackage.Literals.LET_STATEMENT__VAR_NAME);
     }

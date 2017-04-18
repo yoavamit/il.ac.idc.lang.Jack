@@ -10,7 +10,7 @@ ClassDef:
 	'class' className=ID '{' vars+=ClassVarDecl* routines+=SubroutineDecl* '}';
 
 ClassVarDecl:
-	access=('static' | 'field') type=Type varName=ID;
+	access=('static' | 'field') type=Type varName+=ID (',' varName+=ID )* ';';
 
 Type:
 	'int' | 'boolean' | 'char' | ID;

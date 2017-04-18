@@ -26,6 +26,6 @@ public class JackDoStatement extends AbstractJackStatement {
 
 	@Override
 	public String getId() {
-		return getClassName() + "." + getSubroutineName() + ":statement-do-" + id;
+		return getKlassName() + "." + getSubroutineName() + ":statement-do-" + id;
 	}
 }

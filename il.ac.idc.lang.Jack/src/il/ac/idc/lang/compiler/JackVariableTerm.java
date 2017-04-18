@@ -65,6 +65,6 @@ public class JackVariableTerm extends AbstractJackTerm {
 
 	@Override
 	public String getId() {
-		return getClassName() + "." + getSubroutineName() + ":term-var-" + varname +"-" + id;
+		return getKlassName() + "." + getSubroutineName() + ":term-var-" + varname +"-" + id;
 	}
 }

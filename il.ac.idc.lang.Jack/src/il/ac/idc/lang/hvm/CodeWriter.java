@@ -705,11 +705,4 @@ public class CodeWriter {
 		out.flush();
 		out.close();
 	}
-	
-	public static void main(String[] args) {
-		CodeWriter writer = new CodeWriter(null);
-		writer.writePushPop(CommandType.C_PUSH, "constant", 7);
-		writer.writePushPop(CommandType.C_PUSH, "constant", 8);
-		writer.writeArithmetic("add");
-	}
 }

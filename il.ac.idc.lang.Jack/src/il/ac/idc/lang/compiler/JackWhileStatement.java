@@ -51,7 +51,7 @@ public class JackWhileStatement extends AbstractJackStatement {
 
 	@Override
 	public String getId() {
-		return getClassName() + "." + getSubroutineName() + ":statement-while-" + id;
+		return getKlassName() + "." + getSubroutineName() + ":statement-while-" + id;
 	}
 	
 }

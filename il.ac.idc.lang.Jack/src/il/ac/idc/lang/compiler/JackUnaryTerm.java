@@ -36,7 +36,7 @@ public class JackUnaryTerm extends AbstractJackTerm {
 
 	@Override
 	public String getId() {
-		return getClassName() + "." + getSubroutineName() + ":unary-term-" + id;
+		return getKlassName() + "." + getSubroutineName() + ":unary-term-" + id;
 	}
 
 }

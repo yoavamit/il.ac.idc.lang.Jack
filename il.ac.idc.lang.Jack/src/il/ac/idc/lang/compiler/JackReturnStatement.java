@@ -33,7 +33,7 @@ public class JackReturnStatement extends AbstractJackStatement {
 
 	@Override
 	public String getId() {
-		return getClassName() + "." + getSubroutineName() + ":statement-return-" + id;
+		return getKlassName() + "." + getSubroutineName() + ":statement-return-" + id;
 	}
 
 }

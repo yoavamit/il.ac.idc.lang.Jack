@@ -61,6 +61,6 @@ public class JackIfStatement extends AbstractJackStatement {
 	
 	@Override
 	public String getId() {
-		return getClassName() + "." + getSubroutineName() + ":statement-if-" + id;
+		return getKlassName() + "." + getSubroutineName() + ":statement-if-" + id;
 	}
 }

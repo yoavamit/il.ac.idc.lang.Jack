@@ -19,13 +19,12 @@ public class JackClassVariableDecl extends AbstractJackObject {
 	
 	@Override
 	public String getId() {
-		return getClassName() + ":var-decl-" + id;
+		return getKlassName() + ":var-decl-" + id;
 	}
 
 	@Override
 	public String writeVMCode() {
-		// TODO Auto-generated method stub
-		return null;
+		return "// classVar:" + getKlassName() + "." + modifier.terminal + "." + name.terminal + "." + type.terminal + "\n";
 	}
 
 }

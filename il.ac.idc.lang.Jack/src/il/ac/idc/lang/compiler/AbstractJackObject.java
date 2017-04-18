@@ -25,7 +25,7 @@ public abstract class AbstractJackObject {
 		}
 	}
 	
-	protected String getClassName() {
+	protected String getKlassName() {
 		AbstractJackObject klass = this;
 		while(klass != klass.parent && !(klass instanceof JackClass)) {
 			klass = klass.parent;
