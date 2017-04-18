@@ -6,19 +6,22 @@ import org.eclipse.debug.core.model.IVariable;
 
 public class JackVMValue extends JackVMDebugElement implements IValue {
 
-	private IVariable var;
-	private int value;
+	private JackVMVariable var;
+	private String value;
 	
-	public JackVMValue(JackVMVariable var, int value) {
+	public JackVMValue(JackVMVariable var, String value) {
 		super((JackVMDebugTarget) var.getDebugTarget());
 		this.var = var;
-		this.value = value;
+		if (value.indexOf('|') > 0) {
+			this.value = value.split("\\|")[3];
+		} else {
+			this.value = value;
+		}
 	}
 
 	@Override
 	public String getReferenceTypeName() throws DebugException {
-		// TODO Auto-generated method stub
-		return null;
+		return var.getReferenceTypeName();
 	}
 
 	@Override
@@ -28,18 +31,40 @@ public class JackVMValue extends JackVMDebugElement implements IValue {
 
 	@Override
 	public IVariable[] getVariables() throws DebugException {
-		return new IVariable[]{var};
+		String[] data = ((JackVMDebugTarget)getDebugTarget()).sendRequest("value-get|" + getReferenceTypeName() + "|" + value).split(",");
+		IVariable[] vars = new IVariable[data.length];
+		for (int i = 0; i < data.length; i++) {
+			String type, name, address;
+			String[] datum = data[i].split("\\|");
+			type = datum[1];
+			name = datum[2];
+			address = datum[3];
+			vars[i] = new JackVMVariable(this, type + ":" + name + ":" + address);
+		}
+		return vars;
 	}
 
+	private boolean isPrimitive() throws DebugException {
+		switch(getReferenceTypeName()) {
+		case "int":
+		case "char":
+		case "boolean":
+			return false;
+		default:
+			return true;
+		}
+	}
+	
 	@Override
 	public boolean hasVariables() throws DebugException {
-		return true;
+		return isPrimitive();
 	}
 
 	@Override
 	public boolean isAllocated() throws DebugException {
-		// TODO Auto-generated method stub
-		return false;
+		if (!isPrimitive()) {
+			return !value.equals("0");
+		}
+		return true;
 	}
-
 }

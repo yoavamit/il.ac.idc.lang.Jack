@@ -114,7 +114,16 @@ public class JackVMThread extends JackVMDebugElement implements IThread {
 	@Override
 	public IStackFrame[] getStackFrames() throws DebugException {
 		if (isSuspended()) {
-			return ((JackVMDebugTarget)getDebugTarget()).getStackFrames();
+			String data = ((JackVMDebugTarget)getDebugTarget()).sendRequest("stack");
+			IStackFrame[] stackFrames = null;
+			if (data != null) {
+				String[] frames = data.split("#");
+				stackFrames = new IStackFrame[frames.length];
+				for (int i = 0; i < frames.length; i++) {
+					stackFrames[frames.length - i - 1] = new JackVMStackFrame(this, i, frames[i]);
+				}
+			}
+			return stackFrames;
 		} else {
 			return new IStackFrame[0];
 		}

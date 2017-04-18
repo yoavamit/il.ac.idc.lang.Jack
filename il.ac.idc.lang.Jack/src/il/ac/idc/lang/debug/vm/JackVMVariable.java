@@ -6,50 +6,60 @@ import org.eclipse.debug.core.model.IVariable;
 
 public class JackVMVariable extends JackVMDebugElement implements IVariable {
 
-	private JackVMStackFrame frame;
 	private String name;
+	private String type;
+	private String address;
 	private IValue value;
 	
-	public JackVMVariable(JackVMStackFrame frame, String data) {
-		super((JackVMDebugTarget)frame.getDebugTarget());
-		this.frame = frame;
-		parseVarData(data);
+	public JackVMVariable(JackVMDebugElement parent, String data) {
+		super((JackVMDebugTarget)parent.getDebugTarget());
+		String[] varData = data.split(":");
+		type = varData[0];
+		name = varData[1];
+		address = varData[2];  
 	}
 
-	private void parseVarData(String data) {
-		String[] split = data.split(":");
-		name = split[0];
-		value = new JackVMValue(this, Integer.parseInt(split[1]));
+	private boolean isPrimitive() {
+		switch(type) {
+		case "int":
+		case "char":
+		case "boolean":
+			return true;
+		default:
+			return false;
+		}
 	}
 	
 	@Override
-	public void setValue(String arg0) throws DebugException {
-		// TODO Auto-generated method stub
-
+	public void setValue(String expression) throws DebugException {
+		((JackVMDebugTarget)getDebugTarget()).sendRequest("value-set|" + address + "|" + Integer.parseInt(expression));
 	}
 
 	@Override
-	public void setValue(IValue arg0) throws DebugException {
-		// TODO Auto-generated method stub
-
+	public void setValue(IValue value) throws DebugException {
+		if (value instanceof JackVMValue) {
+			setValue(value.getValueString());
+		}
 	}
 
 	@Override
 	public boolean supportsValueModification() {
-		// TODO Auto-generated method stub
-		return false;
+		return isPrimitive();
 	}
 
 	@Override
-	public boolean verifyValue(String arg0) throws DebugException {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean verifyValue(String expression) throws DebugException {
+		try {
+			Integer.parseInt(expression);
+		} catch (NumberFormatException e) {
+			return false;
+		}
+		return true;
 	}
 
 	@Override
-	public boolean verifyValue(IValue arg0) throws DebugException {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean verifyValue(IValue value) throws DebugException {
+		return verifyValue(value.getValueString());
 	}
 
 	@Override
@@ -59,19 +69,20 @@ public class JackVMVariable extends JackVMDebugElement implements IVariable {
 
 	@Override
 	public String getReferenceTypeName() throws DebugException {
-		// TODO Auto-generated method stub
-		return null;
+		return type;
 	}
 
 	@Override
 	public IValue getValue() throws DebugException {
-		// TODO Auto-generated method stub
+		if (value == null) {
+			String data = ((JackVMDebugTarget)getDebugTarget()).sendRequest("value-get|int|" + address);
+			value = new JackVMValue(this, data);
+		}
 		return value;
 	}
 
 	@Override
 	public boolean hasValueChanged() throws DebugException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 

@@ -26,6 +26,9 @@ public class VMEmulator {
 	private static final Map<String, CommandType> commandsMap = new HashMap<>();
 	private static Map<String, Integer> labels = new HashMap<>();
 	private static Map<String,Integer> functions = new HashMap<>();
+	private static Map<String, List<String>> functionLocalsDebugInfo = new HashMap<>();
+	private static Map<String, List<String>> functionArgsDebugInfo = new HashMap<>();
+	private static Map<String, List<String>> classFieldsDebugInfo = new HashMap<>();
 
 	static {
 		commandsMap.put("push", CommandType.C_PUSH);
@@ -56,26 +59,49 @@ public class VMEmulator {
 			this.args = args;
 		}
 		
+		public String getValue(String varName) {
+			int index = 0;
+			if (functionArgsDebugInfo.get(function).contains(varName)) {
+				index = functionArgsDebugInfo.get(function).indexOf(varName) + (stackPointer - args - 5);
+			} else {
+				index = functionLocalsDebugInfo.get(function).indexOf(varName) + stackPointer;
+			}
+			return "" + ram[index]; 
+		}
+		
 		/**
 		 * Returns a serialized form of the stack frame
-		 * "functionName|pc|arg0:val|arg1:val|local0:val|local1:val|local2:val...
+		 * "functionName|pc|var1|var2|var3..."
 		 */
 		@Override
 		public String toString() {
-			int numLocals = functions.get(function);
-			int argPointer = stackPointer - args - 5;
-			int localPointer = stackPointer;
+			List<String> locals = functionLocalsDebugInfo.get(function);
+			if (locals == null) {
+				locals = new ArrayList<String>();
+			}
+			List<String> args = functionArgsDebugInfo.get(function);
 			int pcPointer = stackPointer - 5;
-			String[] frame = new String[numLocals + args + 2];
+			int argPointer = ram[stackPointer - 3];
+			String[] frame = new String[2 + locals.size() + args.size()];
 			frame[0] = function;
 			frame[1] = "" + (ram[pcPointer] - 1);
-			for (int i = 0; i < args; i++) {
-				frame[i + 2] = "arg" + i + ":" + ram[argPointer + i];
+			for (int i = 0; i < args.size(); i++) {
+				frame[i + 2] = args.get(i) + ":" + (argPointer + i);
 			}
-			for (int i = 0; i < numLocals; i++) {
-				frame[args + i + 2] = "local" + i + ":" + ram[localPointer + i];
+			for (int i = 0; i < locals.size(); i++) {
+				frame[i + 2 + args.size()] = locals.get(i) + ":" + (stackPointer + i);
 			}
 			return String.join("|", frame);
+		}
+
+		public void setValue(String varName, int value) {
+			int index = 0;
+			if (functionArgsDebugInfo.get(function).contains(varName)) {
+				index = stackPointer - 5 - args + functionArgsDebugInfo.get(function).indexOf(varName);
+			} else {
+				index = stackPointer + functionLocalsDebugInfo.get(function).indexOf(varName);
+			}
+			ram[index] = (short) value;
 		}
 	}
 	
@@ -134,7 +160,40 @@ public class VMEmulator {
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
 			line = line.trim();
-			if (line.startsWith("// sourceLine:")) {
+			if (line.startsWith("// var:")) {
+				int splitIndex = line.indexOf(":") + 1;
+				String[] data = line.substring(splitIndex).split("\\.");
+				String klass = data[0];
+				String subroutine = data[1];
+				String varName = data[2];
+				String type = data[3];
+				if (!functionLocalsDebugInfo.containsKey(klass + "." + subroutine)) {
+					functionLocalsDebugInfo.put(klass + "." + subroutine, new ArrayList<String>());
+				}
+				functionLocalsDebugInfo.get(klass + "." + subroutine).add(type + ":" + varName);
+			} else if (line.startsWith("// arg:")) {
+				int splitIndex = line.indexOf(":") + 1;
+				String[] data = line.substring(splitIndex).split("\\.");
+				String klass = data[0];
+				String subroutine = data[1];
+				String name = data[2];
+				String type = data[3];
+				if (!functionArgsDebugInfo.containsKey(klass + "." + subroutine)) {
+					functionArgsDebugInfo.put(klass + "." + subroutine, new ArrayList<String>());
+				}
+				functionArgsDebugInfo.get(klass + "." + subroutine).add(type + ":" + name);
+			} else if (line.startsWith("// classVar:")) {
+				int splitIndex = line.indexOf(":") + 1;
+				String[] data = line.substring(splitIndex).split("\\.");
+				String klass = data[0];
+				String modifier = data[1];
+				String name = data[2];
+				String type = data[3];
+				if (!classFieldsDebugInfo.containsKey(klass)) {
+					classFieldsDebugInfo.put(klass, new ArrayList<String>());
+				}
+				classFieldsDebugInfo.get(klass).add(modifier + "|" + type + "|" + name);
+			} else if (line.startsWith("// sourceLine:")) {
 				int colons = line.indexOf(":");
 				sourceCodeLine = Integer.parseInt(line.substring(colons + 1));
 				continue;
@@ -146,6 +205,9 @@ public class VMEmulator {
 				labels.put(line.split(" ")[1], commandAddress);
 			} else if (line.startsWith("function")) {
 				String[] func = line.split(" ");
+				if (!functionArgsDebugInfo.containsKey(func[1])) {
+					functionArgsDebugInfo.put(func[1], new ArrayList<String>());
+				}
 				functions.put(func[1], Integer.parseInt(func[2]));
 				if (!sourceCodeLineMap.containsKey(sourceCodeLine)) {
 					sourceCodeLineMap.put(sourceCodeLine, new HashSet<Integer>());
@@ -182,21 +244,36 @@ public class VMEmulator {
 		return String.join("#", frameStrings);
 	}
 	
-	private String parseHeap(short[] heap) {
-		List<String> objects = new ArrayList<>();
-		int i = 0;
-		while(i < heap.length) {
-			int size = heap[i++];
-			String[] object = new String[size];
-			for (int j = i; j < i + size - 1; j++) {
-				object[j-i] = "" + heap[j];
+	private String parseHeap(int address, String type) {
+		int size = ram[address - 1];
+		List<String> objectFields = classFieldsDebugInfo.get(type);
+		String[] parsedObject = new String[size];
+		for (int i = 0; i < size; i++) {
+			String[] field = objectFields.get(i).split("\\|");
+			String modifier = field[0];
+			String fieldType = field[1];
+			String fieldName = field[2];
+			if (modifier.equals("field")) {
+				parsedObject[i] = fieldType + ":" + fieldName + "=" + ram[address + i];
 			}
-			object[size - 1] += "" + heap[i + size - 1];
-			i += size;
-			objects.add(String.join(",", object));
 		}
-		String[] heapString = objects.toArray(new String[]{});
-		return String.join(",", heapString);
+		return String.join("|", parsedObject);
+	}
+	
+	private String getValue(String type, int address) {
+		switch(type) {
+		case "int":
+		case "char":
+		case "boolean":
+			return "" + ram[address];
+		default:
+			List<String> fields = classFieldsDebugInfo.get(type);
+			String[] values = new String[fields.size()];
+			for (int i = 0; i < values.length; i++) {
+				values[i] = fields.get(i) + "|" + (address + i);
+			}
+			return String.join(",", values);
+		}
 	}
 	
 	private void sendResponse(Socket client, String response) throws IOException {
@@ -222,9 +299,9 @@ public class VMEmulator {
 			breakpoints.removeAll(toRemove);
 			break;
 		case "data":
-			short[] heap = new short[freeHeapPointer - HEAP_OFFSET];
-			System.arraycopy(ram, HEAP_OFFSET, heap, 0, heap.length);
-			response = parseHeap(heap);
+			int objectAddress = Integer.parseInt(command[1]);
+			String objectType = command[2];
+			response = parseHeap(objectAddress, objectType);
 			break;
 		case "exit":
 			isTerminated = true;
@@ -232,6 +309,7 @@ public class VMEmulator {
 		case "resume":
 			isPaused = false;
 			sendDebugEvent("resumed|client");
+			processCommand();
 			break;
 		case "set":
 			Set<Integer> toAdd = sourceCodeLineMap.get(new Integer(command[1]));
@@ -240,8 +318,6 @@ public class VMEmulator {
 			}
 			break;
 		case "stack":
-//			short[] stack = new short[stackPointer - STACK_OFFSET];
-//			System.arraycopy(ram, 256, stack, 0, stack.length);
 			response = parseStack();
 			break;
 		case "step":
@@ -255,7 +331,16 @@ public class VMEmulator {
 			isPaused = true;
 			sendDebugEvent("suspended|client");
 			break;
-		case "var":
+		case "value-get":
+			String type = command[1];
+			int address = Integer.parseInt(command[2]);
+			response = getValue(type, address);
+			break;
+		case "value-set":
+			int frameId = Integer.parseInt(command[1]);
+			String varName = command[2];
+			int value = Integer.parseInt(command[3]);
+			frames.get(frameId).setValue(varName, value);
 			// TODO
 			break;
 		default:
@@ -317,6 +402,7 @@ public class VMEmulator {
 	private void processCommand() {
 		String[] command = program.get(pc).split(" ");
 		CommandType type = commandsMap.get(command[0]);
+		System.out.println("PC:" + pc + " " + program.get(pc));
 		switch (type) {
 		case C_ARITHMETIC:
 			processArithmetic(command[0]);
@@ -411,8 +497,8 @@ public class VMEmulator {
 			pushStack(ram[address]);
 			break;
 		case "Memory.poke":
-			address = popStack();
 			short val = popStack();
+			address = popStack();
 			ram[address] = val;
 			break;
 		case "Memory.alloc":
@@ -563,12 +649,12 @@ public class VMEmulator {
 	}
 
 	private void processGoto(String label) {
-		pc = labels.get(label);
+		pc = labels.get(label) - 1;
 	}
 
 	private void processIf(String label) {
 		int val = popStack();
-		if (val != 0) {
+		if (val == 0) {
 			pc = labels.get(label);
 		}
 	}
@@ -649,6 +735,7 @@ public class VMEmulator {
 		thisPointer = ram[frame - 2];
 		thatPointer = ram[frame - 1];
 		pc = returnAddress;
+		frames.remove(frames.size() - 1);
 	}
 
 	public static void main(String[] args) {

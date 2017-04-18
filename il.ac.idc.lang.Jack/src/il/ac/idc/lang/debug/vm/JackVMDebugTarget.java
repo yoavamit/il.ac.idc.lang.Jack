@@ -23,7 +23,6 @@ import org.eclipse.debug.core.model.IDebugTarget;
 import org.eclipse.debug.core.model.ILineBreakpoint;
 import org.eclipse.debug.core.model.IMemoryBlock;
 import org.eclipse.debug.core.model.IProcess;
-import org.eclipse.debug.core.model.IStackFrame;
 import org.eclipse.debug.core.model.IThread;
 
 import il.ac.idc.lang.launching.IHackLaunchConfigurationConstants;
@@ -44,7 +43,6 @@ public class JackVMDebugTarget extends JackVMDebugElement implements IDebugTarge
 				try {
 					event = new BufferedReader(new InputStreamReader(eventSocket.getInputStream())).readLine();
 					if (event != null) {
-						System.out.println("Got event from client: " + event);
 						String[] eventDetails = event.split("\\|");
 						switch(eventDetails[0]) {
 						case "started":
@@ -54,7 +52,7 @@ public class JackVMDebugTarget extends JackVMDebugElement implements IDebugTarge
 //								breakpointAdded(breakpoints[i]);
 //							}
 							try {
-								sendRequest("set|" + 29);
+								sendRequest("set|" + 33);
 								resume();
 							} catch (DebugException e) {
 							}
@@ -293,16 +291,17 @@ public class JackVMDebugTarget extends JackVMDebugElement implements IDebugTarge
 		return false;
 	}
 
-	private void sendRequest(String request) throws DebugException {
+	protected String sendRequest(String request) throws DebugException {
 		synchronized (requestSocket) {
 			requestPrinter.println(request);
 			requestPrinter.flush();
 			try {
-				requestReader.readLine();
+				return requestReader.readLine();
 			} catch (IOException e) {
 				abort("Debug request failed", e);
 			}
 		}
+		return null;
 	}
 	
 	private void resumed(int detail) {
@@ -325,27 +324,6 @@ public class JackVMDebugTarget extends JackVMDebugElement implements IDebugTarge
 		fireTerminateEvent();
 	}
 	
-	protected IStackFrame[] getStackFrames() throws DebugException {
-		synchronized (requestSocket) {
-			requestPrinter.println("stack");
-			requestPrinter.flush();
-			try {
-				String data = requestReader.readLine();
-				if (data != null) {
-					String[] frames = data.split("#");
-					IStackFrame[] stackFrames = new IStackFrame[frames.length];
-					for (int i = 0; i < frames.length; i++) {
-						stackFrames[frames.length - i - 1] = new JackVMStackFrame(myThread, frames[i]);
-					}
-					return stackFrames;
-				}
-			} catch (IOException e) {
-				abort("Cannot get stack frames", e);
-			}
-		}
-		return new IStackFrame[0];
-	}
-
 	@Override
 	public ILaunch getLaunch() {
 		return launch;

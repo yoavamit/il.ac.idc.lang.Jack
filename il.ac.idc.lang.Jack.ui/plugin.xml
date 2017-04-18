@@ -448,4 +448,25 @@
            id="il.ac.idc.lang.ui.launch.tabGroup.Jack.compiler">
      </launchConfigurationTabGroup>
   </extension>
+<!--  
+  <extension
+        id="il.ac.idc.lang.jack.breakpointAdapter"
+        point="org.eclipse.core.runtime.adapters">
+     <factory
+           class="il.ac.idc.lang.ui.debug.JackVmBreakpointAdapterFactory"
+           adaptableType="org.eclipse.ui.texteditor.ITextEditor">
+        <adapter
+              type="il.ac.idc.lang.ui.debug.JackVMLineBreakpointAdapter">
+        </adapter>
+     </factory>
+  </extension>
+-->
+  <extension
+        id="il.ac.idc.jack.ui.debugModelPresentation"
+        point="org.eclipse.debug.ui.debugModelPresentations">
+     <debugModelPresentation
+           class="il.ac.idc.lang.ui.debug.JackVMModelPresentation"
+           id="il.ac.idc.jack.debug.model">
+     </debugModelPresentation>
+  </extension>
 </plugin>

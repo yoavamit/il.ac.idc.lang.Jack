@@ -37,5 +37,21 @@
            id="il.ac.idc.lang.launching.Jack.compiler">
      </launchConfigurationType>
   </extension>
-
+<!--
+  <extension
+        id="jackVMLineBreakpointMarker"
+        point="org.eclipse.core.resources.markers">
+     <super type="org.eclipse.debug.core.lineBreakpointMarker"/>
+     <persistent value="true"/>
+  </extension>
+  <extension
+        point="org.eclipse.debug.core.breakpoints">
+     <breakpoint
+           id="il.ac.idc.jack.vm.lineBreakpoint"
+           markerType="il.ac.idc.lang.Jack.jackVMLineBreakpointMarker"
+           class="il.ac.idc.lang.ui.debug.JackVMLineBreakpoint"
+           name="Jack VM breakpoint">
+     </breakpoint>
+  </extension>
+-->
 </plugin>
